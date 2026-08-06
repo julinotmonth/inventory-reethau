@@ -1304,6 +1304,168 @@ input[type="range"]::-moz-range-thumb {
   vertical-align: middle;
 }
 
+/* Below this width, tables switch from columns to a stacked card per row —
+   the same "one card per item" pattern used for the spare part list — so
+   nothing needs horizontal scrolling to be read on a phone. */
+@media (max-width: 760px) {
+  .simple-table-wrap {
+    overflow-x: visible;
+  }
+
+  .simple-table {
+    min-width: 0;
+  }
+
+  .simple-table thead {
+    display: none;
+  }
+
+  .simple-table,
+  .simple-table tbody,
+  .simple-table tr {
+    display: block;
+    width: 100%;
+  }
+
+  .simple-table tr {
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 14px;
+    margin-bottom: 0.75rem;
+    padding: 0.35rem 0.9rem;
+    background: rgba(255, 255, 255, 0.015);
+  }
+
+  .simple-table tbody tr:last-child {
+    margin-bottom: 0;
+  }
+
+  .simple-table td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.55rem 0;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.07);
+    text-align: right;
+    white-space: normal;
+  }
+
+  .simple-table td:last-child {
+    border-bottom: none;
+  }
+
+  .simple-table td[data-label]::before {
+    content: attr(data-label);
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748B;
+    font-weight: 700;
+    flex-shrink: 0;
+    text-align: left;
+  }
+
+  /* The "identity" cell (part name / description) — shown as a full-width
+     block up top instead of a label:value row. */
+  .simple-table td.cell-lead {
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    padding-bottom: 0.75rem;
+    margin-bottom: 0.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .simple-table td.cell-lead::before {
+    display: none;
+  }
+
+  /* Action buttons / route cells span full width without a label prefix. */
+  .simple-table td.cell-action,
+  .simple-table td.cell-plain {
+    justify-content: center;
+    padding-top: 0.7rem;
+  }
+
+  .simple-table td.cell-action::before,
+  .simple-table td.cell-plain::before {
+    display: none;
+  }
+
+  .simple-table td.cell-action .btn-chip {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .simple-table td.cell-empty {
+    display: block;
+    text-align: center;
+  }
+}
+
+@media (max-width: 560px) {
+  .view-toolbar-row {
+    align-items: stretch !important;
+  }
+
+  .view-toolbar-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ── Audit / Log timeline ── */
+.audit-timeline-item {
+  display: flex;
+  gap: 0.9rem;
+  align-items: stretch;
+}
+
+.audit-timeline-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.audit-timeline-dot {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.audit-timeline-line {
+  flex: 1;
+  width: 2px;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.03));
+  margin: 0.35rem 0;
+  min-height: 1.25rem;
+}
+
+.audit-timeline-content {
+  flex: 1;
+  min-width: 0;
+  padding-bottom: 1.4rem;
+}
+
+.audit-timeline-item:last-child .audit-timeline-content {
+  padding-bottom: 0;
+}
+
+@media (max-width: 480px) {
+  .audit-timeline-dot {
+    width: 30px;
+    height: 30px;
+  }
+  .audit-timeline-item {
+    gap: 0.65rem;
+  }
+}
+
 .roster-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr));

@@ -193,6 +193,45 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ auth, onLogout, 
     showToast(`Berhasil mentransfer ${quantity} unit ${item.name} ke Site ${targetSite.toUpperCase()}`);
   };
 
+  const handleFlagMaintenance = (item: SparePart, note: string) => {
+    setSpareParts((prev) =>
+      prev.map((p) => (p.id === item.id ? { ...p, status: 'Maintenance Needed', lastInspected: new Date().toISOString().split('T')[0] } : p))
+    );
+
+    const newLog: ActivityLog = {
+      id: `log-${Date.now()}`,
+      timestamp: new Date().toLocaleString('id-ID'),
+      action: 'STOCK_UPDATE',
+      description: note
+        ? `Menandai ${item.name} (${item.sku}) di Site ${item.site.toUpperCase()} untuk maintenance: ${note}`
+        : `Menandai ${item.name} (${item.sku}) di Site ${item.site.toUpperCase()} untuk maintenance.`,
+      performedBy: auth.username,
+      siteFrom: item.site,
+    };
+    setLogs((prev) => [newLog, ...prev]);
+
+    showToast(`${item.name} ditandai untuk maintenance.`);
+  };
+
+  const handleResolveMaintenance = (item: SparePart) => {
+    const resolvedStatus: SparePart['status'] = item.stock <= 0 ? 'Critical' : item.stock <= item.minStock ? 'Low Stock' : 'In Stock';
+    setSpareParts((prev) =>
+      prev.map((p) => (p.id === item.id ? { ...p, status: resolvedStatus, lastInspected: new Date().toISOString().split('T')[0] } : p))
+    );
+
+    const newLog: ActivityLog = {
+      id: `log-${Date.now()}`,
+      timestamp: new Date().toLocaleString('id-ID'),
+      action: 'STOCK_UPDATE',
+      description: `Maintenance selesai untuk ${item.name} (${item.sku}) di Site ${item.site.toUpperCase()}.`,
+      performedBy: auth.username,
+      siteFrom: item.site,
+    };
+    setLogs((prev) => [newLog, ...prev]);
+
+    showToast(`${item.name} ditandai selesai maintenance.`);
+  };
+
   const handleDeleteSparePart = (id: string) => {
     if (confirm('Apakah Anda yakin ingin menghapus data spare part ini?')) {
       const target = spareParts.find((p) => p.id === id);
@@ -460,8 +499,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ auth, onLogout, 
           <GlobalSearchView spareParts={spareParts} logs={logs} onNavigate={setActiveView} />
         )}
         {activeView === 'categories' && <CategoriesView spareParts={spareParts} />}
-        {activeView === 'assignments' && <AssignmentsView logs={logs} />}
-        {activeView === 'maintenance' && <MaintenanceView spareParts={spareParts} />}
+        {activeView === 'assignments' && (
+          <AssignmentsView spareParts={spareParts} logs={logs} onConfirmTransfer={handleConfirmTransfer} />
+        )}
+        {activeView === 'maintenance' && (
+          <MaintenanceView
+            spareParts={spareParts}
+            onFlagMaintenance={handleFlagMaintenance}
+            onResolveMaintenance={handleResolveMaintenance}
+          />
+        )}
         {activeView === 'audit' && <AuditView logs={logs} />}
         {activeView === 'branches' && <BranchesView spareParts={spareParts} />}
         {activeView === 'product-lines' && <ProductLinesView spareParts={spareParts} />}

@@ -484,7 +484,7 @@ export const AddEditSparePartModal: React.FC<AddEditSparePartModalProps> = ({
             label="Kategori Spare Part"
             value={category}
             options={sparePartCategories}
-            onChange={setCategory}
+            onChange={(value) => setCategory(value as SparePartCategory)}
             onAddCategory={handleAddSparePartCategory}
           />
 
@@ -492,7 +492,7 @@ export const AddEditSparePartModal: React.FC<AddEditSparePartModalProps> = ({
             label="Kategori Produk Energi"
             value={productEnergy}
             options={productEnergyCategories}
-            onChange={setProductEnergy}
+            onChange={(value) => setProductEnergy(value as ProductEnergyCategory)}
             onAddCategory={handleAddProductEnergyCategory}
             labelFor={(opt) => {
               if (opt === 'CNG') return 'CNG (Compressed Natural Gas)';

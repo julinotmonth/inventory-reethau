@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Search,
   Tags,
@@ -15,10 +15,15 @@ import {
   ChevronLeft,
   ChevronRight,
   QrCode as QrCodeIcon,
+  ScanLine,
+  History,
+  CheckCircle2,
 } from 'lucide-react';
 import type { SparePart, ActivityLog, SiteLocation } from '../../types';
-import { CATEGORY_VISUAL } from '../../data/categoryVisuals';
+import { getCategoryVisual } from '../../data/categoryVisuals';
 import { QRCodeModal } from './QRCodeModal';
+import { BarcodeScannerModal } from './BarcodeScannerModal';
+import type { AdminView } from './Sidebar';
 
 export const SETU_GALLERY: { src: string; caption: string }[] = [
   { src: '/assets/images/setu/setu-01.webp', caption: 'Sambungan & Fitting Perpipaan Gas' },
@@ -77,8 +82,14 @@ function PageHeader({ icon: Icon, title, sub }: { icon: React.ElementType; title
 }
 
 /* ────────────────────────────── Global Search ────────────────────────────── */
-export const GlobalSearchView: React.FC<{ spareParts: SparePart[]; logs: ActivityLog[] }> = ({ spareParts, logs }) => {
+export const GlobalSearchView: React.FC<{
+  spareParts: SparePart[];
+  logs: ActivityLog[];
+  onNavigate?: (view: AdminView) => void;
+}> = ({ spareParts, logs, onNavigate }) => {
   const [q, setQ] = useState('');
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [scanNotice, setScanNotice] = useState<{ code: string; matched: boolean } | null>(null);
   const query = q.trim().toLowerCase();
 
   const partResults = query
@@ -86,7 +97,10 @@ export const GlobalSearchView: React.FC<{ spareParts: SparePart[]; logs: Activit
         (p) =>
           p.name.toLowerCase().includes(query) ||
           p.sku.toLowerCase().includes(query) ||
-          p.specifications.toLowerCase().includes(query)
+          p.specifications.toLowerCase().includes(query) ||
+          p.category.toLowerCase().includes(query) ||
+          p.productEnergy.toLowerCase().includes(query) ||
+          SITE_LABEL[p.site].toLowerCase().includes(query)
       )
     : [];
 
@@ -94,32 +108,75 @@ export const GlobalSearchView: React.FC<{ spareParts: SparePart[]; logs: Activit
     ? logs.filter((l) => l.description.toLowerCase().includes(query) || l.performedBy.toLowerCase().includes(query))
     : [];
 
+  const topCategories = useMemo(() => {
+    const counts = new Map<string, number>();
+    spareParts.forEach((p) => counts.set(p.category, (counts.get(p.category) ?? 0) + 1));
+    return Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([name]) => name);
+  }, [spareParts]);
+
+  const handleScanResult = (code: string) => {
+    const matched = spareParts.some(
+      (p) => p.sku.toLowerCase() === code.toLowerCase() || p.sku.toLowerCase().includes(code.toLowerCase())
+    );
+    setQ(code);
+    setIsScannerOpen(false);
+    setScanNotice({ code, matched });
+  };
+
   return (
     <div>
       <PageHeader icon={Search} title="Global Search" sub="Cari spare part, SKU, spesifikasi, atau riwayat aktivitas di seluruh site" />
 
-      <div className="glass-panel" style={{ borderRadius: '16px', padding: '1rem 1.25rem', marginBottom: '1.5rem' }}>
-        <div style={{ position: 'relative' }}>
-          <Search size={18} color="#64748B" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
-          <input
-            autoFocus
-            type="text"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Ketik untuk mencari di seluruh sistem..."
-            style={{
-              width: '100%',
-              background: 'rgba(10, 15, 29, 0.8)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: '10px',
-              padding: '0.85rem 1rem 0.85rem 2.75rem',
-              color: '#FFFFFF',
-              fontSize: '0.95rem',
-              outline: 'none',
+      <div className="glass-panel" style={{ borderRadius: '16px', padding: '1rem 1.25rem', marginBottom: query || scanNotice ? '1rem' : '1.5rem' }}>
+        <div className="gsearch-input-row">
+          <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
+            <Search size={18} color="#64748B" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
+            <input
+              autoFocus
+              type="text"
+              value={q}
+              onChange={(e) => {
+                setQ(e.target.value);
+                setScanNotice(null);
+              }}
+              placeholder="Ketik, atau scan barcode / QR spare part..."
+              style={{
+                width: '100%',
+                background: 'rgba(10, 15, 29, 0.8)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '10px',
+                padding: '0.85rem 1rem 0.85rem 2.75rem',
+                color: '#FFFFFF',
+                fontSize: '0.95rem',
+                outline: 'none',
+              }}
+            />
+          </div>
+          <button
+            type="button"
+            className="gsearch-scan-btn"
+            onClick={() => {
+              setScanNotice(null);
+              setIsScannerOpen(true);
             }}
-          />
+          >
+            <ScanLine size={18} />
+            Scan
+          </button>
         </div>
       </div>
+
+      {scanNotice && (
+        <div className="gsearch-scan-toast" style={!scanNotice.matched ? { background: 'rgba(245, 158, 11, 0.1)', borderColor: 'rgba(245, 158, 11, 0.35)', color: '#F59E0B' } : undefined}>
+          <CheckCircle2 size={16} />
+          {scanNotice.matched
+            ? `Kode "${scanNotice.code}" terdeteksi dan cocok dengan katalog.`
+            : `Kode "${scanNotice.code}" terdeteksi, namun tidak ditemukan di katalog.`}
+        </div>
+      )}
 
       {query && (
         <>
@@ -167,10 +224,90 @@ export const GlobalSearchView: React.FC<{ spareParts: SparePart[]; logs: Activit
       )}
 
       {!query && (
-        <div style={{ color: '#64748B', fontSize: '0.9rem', textAlign: 'center', padding: '3rem 0' }}>
-          Mulai ketik untuk mencari spare part atau riwayat aktivitas.
+        <div className="gsearch-empty">
+          <div className="gsearch-empty-hero">
+            <div className="gsearch-empty-hero-icon">
+              <Search size={28} />
+            </div>
+            <div style={{ color: '#FFFFFF', fontWeight: 700, fontSize: '1rem', marginBottom: '0.35rem' }}>
+              Mulai ketik atau scan barcode
+            </div>
+            <div style={{ color: '#64748B', fontSize: '0.85rem', maxWidth: '420px', margin: '0 auto' }}>
+              Cari spare part berdasarkan nama, SKU, kategori, atau spesifikasi — atau langsung scan label barcode/QR di lapangan untuk pencarian instan.
+            </div>
+          </div>
+
+          <div className="gsearch-action-grid">
+            <button type="button" className="gsearch-action-card" onClick={() => setIsScannerOpen(true)}>
+              <div className="gsearch-action-card-icon" style={{ background: 'rgba(0, 208, 132, 0.15)', color: '#00D084' }}>
+                <ScanLine size={20} />
+              </div>
+              <div className="gsearch-action-card-title">Scan Barcode / QR</div>
+              <div className="gsearch-action-card-sub">Gunakan kamera untuk memindai label SKU spare part secara instan.</div>
+            </button>
+
+            <button
+              type="button"
+              className="gsearch-action-card"
+              onClick={() => onNavigate?.('categories')}
+              disabled={!onNavigate}
+              style={!onNavigate ? { cursor: 'default', opacity: 0.6 } : undefined}
+            >
+              <div className="gsearch-action-card-icon" style={{ background: 'rgba(56, 189, 248, 0.15)', color: '#38BDF8' }}>
+                <Tags size={20} />
+              </div>
+              <div className="gsearch-action-card-title">Jelajahi Kategori</div>
+              <div className="gsearch-action-card-sub">Lihat ringkasan stok per kategori spare part di seluruh site.</div>
+            </button>
+
+            <button
+              type="button"
+              className="gsearch-action-card"
+              onClick={() => onNavigate?.('audit')}
+              disabled={!onNavigate}
+              style={!onNavigate ? { cursor: 'default', opacity: 0.6 } : undefined}
+            >
+              <div className="gsearch-action-card-icon" style={{ background: 'rgba(244, 114, 182, 0.15)', color: '#F472B6' }}>
+                <History size={20} />
+              </div>
+              <div className="gsearch-action-card-title">Riwayat Aktivitas</div>
+              <div className="gsearch-action-card-sub">Telusuri log transfer, penambahan, dan perubahan stok terbaru.</div>
+            </button>
+          </div>
+
+          {topCategories.length > 0 && (
+            <div className="gsearch-chip-section">
+              <div className="gsearch-chip-label">Pencarian Cepat &mdash; Kategori</div>
+              <div className="gsearch-chips">
+                {topCategories.map((cat) => {
+                  const visual = getCategoryVisual(cat);
+                  const Icon = visual.icon;
+                  return (
+                    <button key={cat} type="button" className="gsearch-chip" onClick={() => setQ(cat)}>
+                      <Icon size={13} color={visual.color} />
+                      {cat}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="gsearch-chip-section">
+            <div className="gsearch-chip-label">Pencarian Cepat &mdash; Site</div>
+            <div className="gsearch-chips">
+              {(Object.keys(SITE_LABEL) as SiteLocation[]).map((site) => (
+                <button key={site} type="button" className="gsearch-chip" onClick={() => setQ(SITE_LABEL[site])}>
+                  <MapPin size={13} />
+                  Site {SITE_LABEL[site]}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
+
+      <BarcodeScannerModal isOpen={isScannerOpen} onClose={() => setIsScannerOpen(false)} onScan={handleScanResult} />
     </div>
   );
 };
@@ -192,8 +329,8 @@ export const CategoriesView: React.FC<{ spareParts: SparePart[] }> = ({ sparePar
       <PageHeader icon={Tags} title="Kategori Spare Part" sub="Ringkasan tiap kategori produk di seluruh site" />
       <div className="kpi-grid">
         {grouped.map(([name, data]) => {
-          const visual = CATEGORY_VISUAL[name as keyof typeof CATEGORY_VISUAL];
-          const Icon = visual?.icon || Package;
+          const visual = getCategoryVisual(name);
+          const Icon = visual.icon || Package;
           return (
             <div key={name} className="glass-panel" style={{ borderRadius: '16px', padding: '1.25rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>

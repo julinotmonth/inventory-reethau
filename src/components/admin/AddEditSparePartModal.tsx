@@ -1,7 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Save, PlusCircle } from 'lucide-react';
+import { X, Save, PlusCircle, ImagePlus, ImageOff, Check } from 'lucide-react';
 import type { SparePart, SparePartCategory, ProductEnergyCategory, SiteLocation } from '../../types';
+import {
+  getSparePartCategories,
+  getProductEnergyCategories,
+  addSparePartCategory,
+  addProductEnergyCategory,
+} from '../../data/categoryStore';
 
 interface AddEditSparePartModalProps {
   isOpen: boolean;
@@ -9,6 +15,157 @@ interface AddEditSparePartModalProps {
   onClose: () => void;
   onSave: (part: Partial<SparePart>) => void;
 }
+
+const ADD_NEW_VALUE = '__add_new_category__';
+
+const selectStyle: React.CSSProperties = {
+  width: '100%',
+  background: '#0A0F1D',
+  border: '1px solid rgba(255, 255, 255, 0.1)',
+  borderRadius: '8px',
+  padding: '0.65rem 0.85rem',
+  color: '#FFFFFF',
+  outline: 'none',
+};
+
+const labelStyle: React.CSSProperties = {
+  display: 'block',
+  fontSize: '0.8rem',
+  color: '#94A3B8',
+  marginBottom: '0.3rem',
+  fontWeight: 600,
+};
+
+/**
+ * A <select> that always offers a "+ Tambah kategori baru" option. Picking it swaps
+ * in a small inline text field so the user can type and confirm a brand-new category,
+ * which is then persisted (via onAddCategory) and immediately selected.
+ */
+const CategorySelect: React.FC<{
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+  onAddCategory: (value: string) => void;
+  labelFor?: (value: string) => string;
+}> = ({ label, value, options, onChange, onAddCategory, labelFor }) => {
+  const [isAdding, setIsAdding] = useState(false);
+  const [draft, setDraft] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isAdding) inputRef.current?.focus();
+  }, [isAdding]);
+
+  const confirmAdd = () => {
+    const trimmed = draft.trim();
+    if (!trimmed) {
+      setIsAdding(false);
+      return;
+    }
+    onAddCategory(trimmed);
+    onChange(trimmed);
+    setDraft('');
+    setIsAdding(false);
+  };
+
+  const cancelAdd = () => {
+    setDraft('');
+    setIsAdding(false);
+  };
+
+  return (
+    <div>
+      <label style={labelStyle}>{label}</label>
+      {isAdding ? (
+        <div style={{ display: 'flex', gap: '0.4rem' }}>
+          <input
+            ref={inputRef}
+            type="text"
+            value={draft}
+            placeholder="Nama kategori baru..."
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                confirmAdd();
+              } else if (e.key === 'Escape') {
+                cancelAdd();
+              }
+            }}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              background: 'rgba(10, 15, 29, 0.8)',
+              border: '1px solid rgba(0, 208, 132, 0.5)',
+              borderRadius: '8px',
+              padding: '0.65rem 0.85rem',
+              color: '#FFFFFF',
+              outline: 'none',
+            }}
+          />
+          <button
+            type="button"
+            onClick={confirmAdd}
+            title="Simpan kategori"
+            style={{
+              flexShrink: 0,
+              width: '38px',
+              borderRadius: '8px',
+              border: 'none',
+              background: '#00D084',
+              color: '#0A0F1D',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Check size={18} />
+          </button>
+          <button
+            type="button"
+            onClick={cancelAdd}
+            title="Batal"
+            style={{
+              flexShrink: 0,
+              width: '38px',
+              borderRadius: '8px',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              background: 'rgba(255, 255, 255, 0.05)',
+              color: '#94A3B8',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <X size={16} />
+          </button>
+        </div>
+      ) : (
+        <select
+          value={value}
+          onChange={(e) => {
+            if (e.target.value === ADD_NEW_VALUE) {
+              setIsAdding(true);
+              return;
+            }
+            onChange(e.target.value);
+          }}
+          style={selectStyle}
+        >
+          {options.map((opt) => (
+            <option key={opt} value={opt}>
+              {labelFor ? labelFor(opt) : opt}
+            </option>
+          ))}
+          <option value={ADD_NEW_VALUE}>+ Tambah kategori baru...</option>
+        </select>
+      )}
+    </div>
+  );
+};
 
 export const AddEditSparePartModal: React.FC<AddEditSparePartModalProps> = ({
   isOpen,
@@ -26,8 +183,20 @@ export const AddEditSparePartModal: React.FC<AddEditSparePartModalProps> = ({
   const [unit, setUnit] = useState('Units');
   const [priceEstimate, setPriceEstimate] = useState(2500000);
   const [specifications, setSpecifications] = useState('');
+  const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
+  const [imageError, setImageError] = useState('');
+
+  const [sparePartCategories, setSparePartCategories] = useState<string[]>(getSparePartCategories());
+  const [productEnergyCategories, setProductEnergyCategories] = useState<string[]>(getProductEnergyCategories());
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    if (!isOpen) return;
+    // Refresh category lists each time the modal opens, in case another session added some.
+    setSparePartCategories(getSparePartCategories());
+    setProductEnergyCategories(getProductEnergyCategories());
+
     if (itemToEdit) {
       setSku(itemToEdit.sku);
       setName(itemToEdit.name);
@@ -39,6 +208,7 @@ export const AddEditSparePartModal: React.FC<AddEditSparePartModalProps> = ({
       setUnit(itemToEdit.unit);
       setPriceEstimate(itemToEdit.priceEstimate);
       setSpecifications(itemToEdit.specifications);
+      setImageUrl(itemToEdit.imageUrl);
     } else {
       setSku(`SKU-${Math.floor(100 + Math.random() * 900)}`);
       setName('');
@@ -50,10 +220,42 @@ export const AddEditSparePartModal: React.FC<AddEditSparePartModalProps> = ({
       setUnit('Units');
       setPriceEstimate(2500000);
       setSpecifications('');
+      setImageUrl(undefined);
     }
+    setImageError('');
   }, [itemToEdit, isOpen]);
 
   if (!isOpen) return null;
+
+  const handleImageSelect = (file: File | undefined) => {
+    setImageError('');
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setImageError('File harus berupa gambar (JPG, PNG, WebP).');
+      return;
+    }
+    const MAX_SIZE = 3 * 1024 * 1024; // 3MB
+    if (file.size > MAX_SIZE) {
+      setImageError('Ukuran gambar maksimal 3MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => setImageUrl(reader.result as string);
+    reader.onerror = () => setImageError('Gagal membaca file gambar.');
+    reader.readAsDataURL(file);
+  };
+
+  const handleAddSparePartCategory = (value: string) => {
+    addSparePartCategory(value);
+    setSparePartCategories(getSparePartCategories());
+  };
+
+  const handleAddProductEnergyCategory = (value: string) => {
+    addProductEnergyCategory(value);
+    setProductEnergyCategories(getProductEnergyCategories());
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,6 +280,7 @@ export const AddEditSparePartModal: React.FC<AddEditSparePartModalProps> = ({
       status,
       lastInspected: new Date().toISOString().split('T')[0],
       specifications: specifications || 'Standar spesifikasi industri Reethau',
+      imageUrl,
     });
     onClose();
   };
@@ -139,10 +342,90 @@ export const AddEditSparePartModal: React.FC<AddEditSparePartModalProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} className="form-grid-2">
+          <div className="span-2">
+            <label style={labelStyle}>Foto Spare Part</label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={(e) => handleImageSelect(e.target.files?.[0])}
+              style={{ display: 'none' }}
+            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div
+                style={{
+                  width: '84px',
+                  height: '84px',
+                  borderRadius: '12px',
+                  overflow: 'hidden',
+                  flexShrink: 0,
+                  background: 'rgba(10, 15, 29, 0.8)',
+                  border: '1px dashed rgba(255, 255, 255, 0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {imageUrl ? (
+                  <img src={imageUrl} alt="Preview spare part" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <ImageOff size={26} color="#64748B" />
+                )}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      background: 'rgba(0, 208, 132, 0.12)',
+                      border: '1px solid rgba(0, 208, 132, 0.4)',
+                      color: '#00D084',
+                      borderRadius: '8px',
+                      padding: '0.5rem 0.85rem',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <ImagePlus size={16} />
+                    {imageUrl ? 'Ganti Gambar' : 'Unggah Gambar'}
+                  </button>
+                  {imageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImageUrl(undefined);
+                        if (fileInputRef.current) fileInputRef.current.value = '';
+                      }}
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        color: '#94A3B8',
+                        borderRadius: '8px',
+                        padding: '0.5rem 0.85rem',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Hapus
+                    </button>
+                  )}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
+                  Format JPG, PNG, atau WebP. Maksimal 3MB.
+                </div>
+                {imageError && <div style={{ fontSize: '0.75rem', color: '#F87171' }}>{imageError}</div>}
+              </div>
+            </div>
+          </div>
+
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: '#94A3B8', marginBottom: '0.3rem', fontWeight: 600 }}>
-              Kode SKU / Serial Number
-            </label>
+            <label style={labelStyle}>Kode SKU / Serial Number</label>
             <input
               type="text"
               required
@@ -163,21 +446,11 @@ export const AddEditSparePartModal: React.FC<AddEditSparePartModalProps> = ({
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: '#94A3B8', marginBottom: '0.3rem', fontWeight: 600 }}>
-              Lokasi Site
-            </label>
+            <label style={labelStyle}>Lokasi Site</label>
             <select
               value={site}
               onChange={(e) => setSite(e.target.value as SiteLocation)}
-              style={{
-                width: '100%',
-                background: '#0A0F1D',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                borderRadius: '8px',
-                padding: '0.65rem 0.85rem',
-                color: '#FFFFFF',
-                outline: 'none',
-              }}
+              style={selectStyle}
             >
               <option value="bekasi">📍 Site Bekasi (Mother Station)</option>
               <option value="indramayu">📍 Site Indramayu (Daughter Station)</option>
@@ -187,9 +460,7 @@ export const AddEditSparePartModal: React.FC<AddEditSparePartModalProps> = ({
           </div>
 
           <div className="span-2">
-            <label style={{ display: 'block', fontSize: '0.8rem', color: '#94A3B8', marginBottom: '0.3rem', fontWeight: 600 }}>
-              Nama Spare Part
-            </label>
+            <label style={labelStyle}>Nama Spare Part</label>
             <input
               type="text"
               required
@@ -209,59 +480,30 @@ export const AddEditSparePartModal: React.FC<AddEditSparePartModalProps> = ({
             />
           </div>
 
-          <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: '#94A3B8', marginBottom: '0.3rem', fontWeight: 600 }}>
-              Kategori Spare Part
-            </label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value as SparePartCategory)}
-              style={{
-                width: '100%',
-                background: '#0A0F1D',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                borderRadius: '8px',
-                padding: '0.65rem 0.85rem',
-                color: '#FFFFFF',
-                outline: 'none',
-              }}
-            >
-              <option value="Compressors">Compressors</option>
-              <option value="Cylinders & Storage">Cylinders & Storage</option>
-              <option value="Valves & Control">Valves & Control</option>
-              <option value="Piping & Connectors">Piping & Connectors</option>
-              <option value="Instruments & Sensors">Instruments & Sensors</option>
-              <option value="Filtration & Purification">Filtration & Purification</option>
-            </select>
-          </div>
+          <CategorySelect
+            label="Kategori Spare Part"
+            value={category}
+            options={sparePartCategories}
+            onChange={setCategory}
+            onAddCategory={handleAddSparePartCategory}
+          />
+
+          <CategorySelect
+            label="Kategori Produk Energi"
+            value={productEnergy}
+            options={productEnergyCategories}
+            onChange={setProductEnergy}
+            onAddCategory={handleAddProductEnergyCategory}
+            labelFor={(opt) => {
+              if (opt === 'CNG') return 'CNG (Compressed Natural Gas)';
+              if (opt === 'LNG') return 'LNG (Liquefied Natural Gas)';
+              if (opt === 'Biomass') return 'Biomassa & Woodchip';
+              return opt;
+            }}
+          />
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: '#94A3B8', marginBottom: '0.3rem', fontWeight: 600 }}>
-              Kategori Produk Energi
-            </label>
-            <select
-              value={productEnergy}
-              onChange={(e) => setProductEnergy(e.target.value as ProductEnergyCategory)}
-              style={{
-                width: '100%',
-                background: '#0A0F1D',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                borderRadius: '8px',
-                padding: '0.65rem 0.85rem',
-                color: '#FFFFFF',
-                outline: 'none',
-              }}
-            >
-              <option value="CNG">CNG (Compressed Natural Gas)</option>
-              <option value="LNG">LNG (Liquefied Natural Gas)</option>
-              <option value="Biomass">Biomassa & Woodchip</option>
-            </select>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: '#94A3B8', marginBottom: '0.3rem', fontWeight: 600 }}>
-              Jumlah Stok Saat Ini
-            </label>
+            <label style={labelStyle}>Jumlah Stok Saat Ini</label>
             <input
               type="number"
               min={0}
@@ -281,9 +523,7 @@ export const AddEditSparePartModal: React.FC<AddEditSparePartModalProps> = ({
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: '#94A3B8', marginBottom: '0.3rem', fontWeight: 600 }}>
-              Batas Stok Minimum
-            </label>
+            <label style={labelStyle}>Batas Stok Minimum</label>
             <input
               type="number"
               min={1}
@@ -303,9 +543,7 @@ export const AddEditSparePartModal: React.FC<AddEditSparePartModalProps> = ({
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: '#94A3B8', marginBottom: '0.3rem', fontWeight: 600 }}>
-              Satuan Unit
-            </label>
+            <label style={labelStyle}>Satuan Unit</label>
             <input
               type="text"
               value={unit}
@@ -324,9 +562,7 @@ export const AddEditSparePartModal: React.FC<AddEditSparePartModalProps> = ({
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: '#94A3B8', marginBottom: '0.3rem', fontWeight: 600 }}>
-              Estimasi Harga (IDR)
-            </label>
+            <label style={labelStyle}>Estimasi Harga (IDR)</label>
             <input
               type="number"
               step={100000}
@@ -346,9 +582,7 @@ export const AddEditSparePartModal: React.FC<AddEditSparePartModalProps> = ({
           </div>
 
           <div className="span-2">
-            <label style={{ display: 'block', fontSize: '0.8rem', color: '#94A3B8', marginBottom: '0.3rem', fontWeight: 600 }}>
-              Spesifikasi Teknis
-            </label>
+            <label style={labelStyle}>Spesifikasi Teknis</label>
             <textarea
               rows={3}
               value={specifications}

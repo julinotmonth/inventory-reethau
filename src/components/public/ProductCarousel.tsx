@@ -1,12 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { CheckCircle2, Gauge, Flame, TreeDeciduous, ArrowRight, ShieldAlert, Cpu } from 'lucide-react';
-import type { Language, ProductEnergyCategory } from '../../types';
+import type { Language } from '../../types';
 import { useScrollReveal } from '../../hooks/useScrollReveal';
+
+// This public marketing carousel only ever shows these three fixed energy products,
+// regardless of any custom "Kategori Produk Energi" values added in the admin panel.
+type CarouselProduct = 'CNG' | 'LNG' | 'Biomass';
 
 interface ProductCarouselProps { lang: Language; }
 
 export const ProductCarousel: React.FC<ProductCarouselProps> = ({ lang }) => {
-  const [activeProduct, setActiveProduct] = useState<ProductEnergyCategory>('CNG');
+  const [activeProduct, setActiveProduct] = useState<CarouselProduct>('CNG');
   const [activeTab, setActiveTab] = useState<'overview' | 'specs' | 'safety'>('overview');
   const sectionRef = useRef<HTMLElement>(null);
 
@@ -104,7 +108,7 @@ export const ProductCarousel: React.FC<ProductCarouselProps> = ({ lang }) => {
           display: 'flex', justifyContent: 'center', gap: '0.85rem',
           marginBottom: '3rem', flexWrap: 'wrap',
         }}>
-          {(['CNG', 'LNG', 'Biomass'] as ProductEnergyCategory[]).map(prod => {
+          {(['CNG', 'LNG', 'Biomass'] as CarouselProduct[]).map(prod => {
             const p = products[prod];
             const active = activeProduct === prod;
             return (

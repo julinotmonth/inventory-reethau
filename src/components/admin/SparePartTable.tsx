@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Edit2, ArrowRightLeft, Trash2, AlertTriangle, QrCode } from 'lucide-react';
 import type { SparePart } from '../../types';
-import { CATEGORY_VISUAL } from '../../data/categoryVisuals';
+import { getCategoryVisual } from '../../data/categoryVisuals';
 import { QRCodeModal } from './QRCodeModal';
 import { BarcodeMini } from './BarcodeMini';
 
@@ -56,7 +56,7 @@ export const SparePartTable: React.FC<SparePartTableProps> = ({ spareParts, onEd
       </div>
 
       {spareParts.map((item) => {
-        const visual = CATEGORY_VISUAL[item.category];
+        const visual = getCategoryVisual(item.category);
         const Icon = visual.icon;
         return (
           <div className="spare-row" role="row" key={item.id}>

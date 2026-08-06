@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import type { AuthState, SparePart, SiteFilter, ActivityLog, SiteLocation } from '../../types';
 import { INITIAL_SPARE_PARTS, INITIAL_LOGS } from '../../data/mockData';
+import { getSparePartCategories } from '../../data/categoryStore';
 import { SiteSelector } from './SiteSelector';
 import { SparePartTable } from './SparePartTable';
 import { TransferModal } from './TransferModal';
@@ -70,6 +71,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ auth, onLogout, 
   const [currentSite, setCurrentSite] = useState<SiteFilter>(auth.assignedSite || 'global');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
+  const [categoryOptions, setCategoryOptions] = useState<string[]>(getSparePartCategories());
 
   const [isAddEditOpen, setIsAddEditOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<SparePart | null>(null);
@@ -139,6 +141,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ auth, onLogout, 
       setLogs((prev) => [newLog, ...prev]);
       showToast(`Spare part baru ${newPart.name} berhasil ditambahkan!`);
     }
+    // Refresh in case a new category was added from the modal.
+    setCategoryOptions(getSparePartCategories());
   };
 
   const handleConfirmTransfer = (item: SparePart, quantity: number, targetSite: SiteLocation) => {
@@ -413,12 +417,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ auth, onLogout, 
               }}
             >
               <option value="ALL">Semua Kategori</option>
-              <option value="Compressors">Compressors</option>
-              <option value="Cylinders & Storage">Cylinders & Storage</option>
-              <option value="Valves & Control">Valves & Control</option>
-              <option value="Piping & Connectors">Piping & Connectors</option>
-              <option value="Instruments & Sensors">Instruments & Sensors</option>
-              <option value="Filtration & Purification">Filtration & Purification</option>
+              {categoryOptions.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -453,7 +456,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ auth, onLogout, 
         </>
         )}
 
-        {activeView === 'global-search' && <GlobalSearchView spareParts={spareParts} logs={logs} />}
+        {activeView === 'global-search' && (
+          <GlobalSearchView spareParts={spareParts} logs={logs} onNavigate={setActiveView} />
+        )}
         {activeView === 'categories' && <CategoriesView spareParts={spareParts} />}
         {activeView === 'assignments' && <AssignmentsView logs={logs} />}
         {activeView === 'maintenance' && <MaintenanceView spareParts={spareParts} />}

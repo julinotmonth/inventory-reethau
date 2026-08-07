@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   LogOut,
   Plus,
@@ -13,6 +13,11 @@ import {
   Wrench,
   Layers,
   Menu,
+  Bell,
+  Sun,
+  Moon,
+  AlertOctagon,
+  ArrowRight,
 } from 'lucide-react';
 import type { AuthState, SparePart, SiteFilter, ActivityLog, SiteLocation } from '../../types';
 import { INITIAL_SPARE_PARTS, INITIAL_LOGS } from '../../data/mockData';
@@ -33,6 +38,10 @@ import {
   ProductLinesView,
   TeamView,
   GalleryView,
+  ACTION_META,
+  parseLogDate,
+  timeAgo,
+  SITE_LABEL,
 } from './AdminExtraViews';
 
 interface AdminDashboardProps {
@@ -46,9 +55,41 @@ interface AdminDashboardProps {
 // instead of silently hiding new items (e.g. Site Setu spare parts).
 const DATA_VERSION = 'v5-compact-layout-2026-07-26';
 
+// All ActivityLog timestamps must share one sortable, parseable format
+// ("YYYY-MM-DD HH:mm", same as the seed data in mockData.ts). Using
+// `toLocaleString('id-ID')` here previously produced a locale-formatted
+// string ("6/8/2026, 18.16.00") that couldn't be sorted or parsed
+// consistently alongside the seed logs.
+const nowTimestamp = (): string => {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
+const THEME_KEY = 'reethau_admin_theme';
+const NOTIF_READ_KEY = 'reethau_notif_last_read';
+
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ auth, onLogout, onGoToPublicSite }) => {
   const [activeView, setActiveView] = useState<AdminView>('dashboard');
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+
+  // ── Theme (dark / light) ────────────────────────────────────────────────
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    const saved = localStorage.getItem(THEME_KEY);
+    return saved === 'light' ? 'light' : 'dark';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem(THEME_KEY, theme);
+    // Reset to the default (dark) look once the admin portal is left, so the
+    // public marketing site keeps its own fixed branded appearance.
+    return () => {
+      document.documentElement.removeAttribute('data-theme');
+    };
+  }, [theme]);
+
+  const toggleTheme = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
 
   const isDataStale = localStorage.getItem('reethau_data_version') !== DATA_VERSION;
 
@@ -79,6 +120,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ auth, onLogout, 
   const [transferringItem, setTransferringItem] = useState<SparePart | null>(null);
   const [isLogsOpen, setIsLogsOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // ── Notifications ────────────────────────────────────────────────────────
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [lastReadAt, setLastReadAt] = useState<number>(() => Number(localStorage.getItem(NOTIF_READ_KEY) || 0));
+  const previousReadAtRef = useRef(lastReadAt);
+
+  const sortedLogs = useMemo(
+    () => [...logs].sort((a, b) => (parseLogDate(b.timestamp)?.getTime() ?? 0) - (parseLogDate(a.timestamp)?.getTime() ?? 0)),
+    [logs]
+  );
+  const unreadCount = useMemo(
+    () => sortedLogs.filter((l) => (parseLogDate(l.timestamp)?.getTime() ?? 0) > lastReadAt).length,
+    [sortedLogs, lastReadAt]
+  );
+  const attentionItems = useMemo(
+    () => spareParts.filter((p) => p.status === 'Critical' || p.status === 'Maintenance Needed'),
+    [spareParts]
+  );
+
+  const toggleNotif = () => {
+    setIsNotifOpen((open) => {
+      const next = !open;
+      if (next) {
+        previousReadAtRef.current = lastReadAt;
+        const now = Date.now();
+        setLastReadAt(now);
+        localStorage.setItem(NOTIF_READ_KEY, String(now));
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     localStorage.setItem('reethau_spare_parts', JSON.stringify(spareParts));
@@ -132,7 +204,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ auth, onLogout, 
 
       const newLog: ActivityLog = {
         id: `log-${Date.now()}`,
-        timestamp: new Date().toLocaleString('id-ID'),
+        timestamp: nowTimestamp(),
         action: 'ADD_SPARE_PART',
         description: `Penambahan spare part baru: ${newPart.name} (${newPart.sku}) di Site ${newPart.site}`,
         performedBy: auth.username,
@@ -181,7 +253,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ auth, onLogout, 
 
     const newLog: ActivityLog = {
       id: `log-${Date.now()}`,
-      timestamp: new Date().toLocaleString('id-ID'),
+      timestamp: nowTimestamp(),
       action: 'TRANSFER',
       description: `Transfer ${quantity} ${item.unit} ${item.name} dari Site ${item.site.toUpperCase()} ke Site ${targetSite.toUpperCase()}`,
       performedBy: auth.username,
@@ -200,7 +272,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ auth, onLogout, 
 
     const newLog: ActivityLog = {
       id: `log-${Date.now()}`,
-      timestamp: new Date().toLocaleString('id-ID'),
+      timestamp: nowTimestamp(),
       action: 'STOCK_UPDATE',
       description: note
         ? `Menandai ${item.name} (${item.sku}) di Site ${item.site.toUpperCase()} untuk maintenance: ${note}`
@@ -221,7 +293,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ auth, onLogout, 
 
     const newLog: ActivityLog = {
       id: `log-${Date.now()}`,
-      timestamp: new Date().toLocaleString('id-ID'),
+      timestamp: nowTimestamp(),
       action: 'STOCK_UPDATE',
       description: `Maintenance selesai untuk ${item.name} (${item.sku}) di Site ${item.site.toUpperCase()}.`,
       performedBy: auth.username,
@@ -253,7 +325,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ auth, onLogout, 
             right: '2rem',
             zIndex: 200,
             background: 'rgba(0, 208, 132, 0.95)',
-            color: '#0A0F1D',
+            color: 'var(--txt-inverse)',
             padding: '1rem 1.5rem',
             borderRadius: '12px',
             fontWeight: 800,
@@ -296,12 +368,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ auth, onLogout, 
                 </span>
               </div>
               <div className="admin-brand-sub">
-                User: <strong style={{ color: '#94A3B8' }}>{auth.username}</strong> ({auth.role})
+                User: <strong style={{ color: 'var(--txt-tertiary)' }}>{auth.username}</strong> ({auth.role})
               </div>
             </div>
           </div>
 
           <div className="admin-actions">
+            <button
+              onClick={toggleTheme}
+              className="btn-chip theme-toggle-btn"
+              title={theme === 'dark' ? 'Ganti ke mode terang' : 'Ganti ke mode gelap'}
+              aria-label="Ganti tema"
+            >
+              {theme === 'dark' ? <Moon size={21} strokeWidth={2.1} /> : <Sun size={21} strokeWidth={2.1} />}
+            </button>
+
+            <button
+              onClick={toggleNotif}
+              className="btn-chip notif-bell-btn"
+              title="Notifikasi"
+              aria-label="Notifikasi"
+            >
+              <Bell size={19} />
+              {unreadCount > 0 && (
+                <span className="notif-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>
+              )}
+            </button>
+
             <button
               onClick={() => setIsLogsOpen(!isLogsOpen)}
               className="btn-chip"
@@ -313,7 +406,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ auth, onLogout, 
             <button
               onClick={onGoToPublicSite}
               className="btn-chip"
-              style={{ color: '#94A3B8' }}
+              style={{ color: 'var(--txt-tertiary)' }}
             >
               <ExternalLink size={16} />
               <span className="label-text">Situs Publik</span>
@@ -337,13 +430,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ auth, onLogout, 
         {/* KPI Cards */}
         <div className="kpi-grid">
           <div className="glass-panel" style={{ borderRadius: '16px', padding: '1.25rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#94A3B8', fontSize: '0.85rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--txt-tertiary)', fontSize: '0.85rem' }}>
               <span>Total Unit Spare Part</span>
               <Package size={20} color="#00D084" />
             </div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#FFFFFF', marginTop: '0.5rem' }}>
+            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--txt-primary)', marginTop: '0.5rem' }}>
               {totalItems}{' '}
-              <span style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: 500 }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--txt-muted)', fontWeight: 500 }}>
                 ({filteredSpareParts.length} jenis)
               </span>
             </div>
@@ -351,49 +444,49 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ auth, onLogout, 
           </div>
 
           <div className="glass-panel" style={{ borderRadius: '16px', padding: '1.25rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#94A3B8', fontSize: '0.85rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--txt-tertiary)', fontSize: '0.85rem' }}>
               <span>Peringatan Stok Kritis</span>
               <AlertTriangle size={20} color={lowStockCount > 0 ? '#F87171' : '#34D399'} />
             </div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: lowStockCount > 0 ? '#F87171' : '#FFFFFF', marginTop: '0.5rem' }}>
-              {lowStockCount} <span style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: 500 }}>item</span>
+            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: lowStockCount > 0 ? '#F87171' : 'var(--txt-primary)', marginTop: '0.5rem' }}>
+              {lowStockCount} <span style={{ fontSize: '0.85rem', color: 'var(--txt-muted)', fontWeight: 500 }}>item</span>
             </div>
-            <div style={{ fontSize: '0.75rem', color: lowStockCount > 0 ? '#F87171' : '#64748B', marginTop: '0.4rem' }}>
+            <div style={{ fontSize: '0.75rem', color: lowStockCount > 0 ? '#F87171' : 'var(--txt-muted)', marginTop: '0.4rem' }}>
               {lowStockCount > 0 ? 'Perlu tindakan pengadaan / transfer' : 'Semua stok dalam ambang aman'}
             </div>
           </div>
 
           <div className="glass-panel" style={{ borderRadius: '16px', padding: '1.25rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#94A3B8', fontSize: '0.85rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--txt-tertiary)', fontSize: '0.85rem' }}>
               <span>Estimasi Nilai Inventaris</span>
               <DollarSign size={20} color="#00D084" />
             </div>
             <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#00D084', marginTop: '0.5rem' }}>
               {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(totalValue)}
             </div>
-            <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.4rem' }}>Total nilai aset terdaftar</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--txt-muted)', marginTop: '0.4rem' }}>Total nilai aset terdaftar</div>
           </div>
 
           <div className="glass-panel" style={{ borderRadius: '16px', padding: '1.25rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#94A3B8', fontSize: '0.85rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--txt-tertiary)', fontSize: '0.85rem' }}>
               <span>Perlu Maintenance</span>
               <Wrench size={20} color={maintenanceCount > 0 ? '#F59E0B' : '#34D399'} />
             </div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: maintenanceCount > 0 ? '#F59E0B' : '#FFFFFF', marginTop: '0.5rem' }}>
-              {maintenanceCount} <span style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: 500 }}>item</span>
+            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: maintenanceCount > 0 ? '#F59E0B' : 'var(--txt-primary)', marginTop: '0.5rem' }}>
+              {maintenanceCount} <span style={{ fontSize: '0.85rem', color: 'var(--txt-muted)', fontWeight: 500 }}>item</span>
             </div>
-            <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.4rem' }}>Menunggu tindakan servis</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--txt-muted)', marginTop: '0.4rem' }}>Menunggu tindakan servis</div>
           </div>
 
           <div className="glass-panel" style={{ borderRadius: '16px', padding: '1.25rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#94A3B8', fontSize: '0.85rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--txt-tertiary)', fontSize: '0.85rem' }}>
               <span>Kategori Aktif</span>
               <Layers size={20} color="#00D084" />
             </div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#FFFFFF', marginTop: '0.5rem' }}>
-              {activeCategoryCount} <span style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: 500 }}>kategori</span>
+            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--txt-primary)', marginTop: '0.5rem' }}>
+              {activeCategoryCount} <span style={{ fontSize: '0.85rem', color: 'var(--txt-muted)', fontWeight: 500 }}>kategori</span>
             </div>
-            <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.4rem' }}>Jenis produk terdaftar di sistem</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--txt-muted)', marginTop: '0.4rem' }}>Jenis produk terdaftar di sistem</div>
           </div>
         </div>
 
@@ -406,7 +499,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ auth, onLogout, 
         <>
         {/* Site Selector */}
         <div style={{ marginBottom: '2rem' }}>
-          <div style={{ fontSize: '0.9rem', color: '#64748B', fontWeight: 700, marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
+          <div style={{ fontSize: '0.9rem', color: 'var(--txt-muted)', fontWeight: 700, marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
             Pilih Tampilan Lokasi Site Operasional
           </div>
           <SiteSelector currentSite={currentSite} onSiteChange={setCurrentSite} siteCounts={siteCounts} />
@@ -434,7 +527,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ auth, onLogout, 
                   border: '1px solid rgba(255, 255, 255, 0.1)',
                   borderRadius: '10px',
                   padding: '0.7rem 1rem 0.7rem 2.75rem',
-                  color: '#FFFFFF',
+                  color: 'var(--txt-primary)',
                   fontSize: '0.9rem',
                   outline: 'none',
                 }}
@@ -445,11 +538,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ auth, onLogout, 
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
               style={{
-                background: '#141C2E',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                background: 'var(--bg-root)',
+                border: '1px solid var(--border-subtle)',
                 borderRadius: '10px',
                 padding: '0.7rem 1rem',
-                color: '#FFFFFF',
+                color: 'var(--txt-primary)',
                 fontSize: '0.85rem',
                 outline: 'none',
                 cursor: 'pointer',
@@ -518,6 +611,106 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ auth, onLogout, 
         </div>
       </div>
 
+      {/* Notifications Panel */}
+      {isNotifOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 95,
+            background: 'rgba(5, 8, 16, 0.6)',
+            display: 'flex',
+            justifyContent: 'flex-end',
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setIsNotifOpen(false); }}
+        >
+          <div className="notif-panel">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--txt-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Bell size={19} color="#00D084" />
+                Notifikasi
+              </h3>
+              <button onClick={() => setIsNotifOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--txt-tertiary)', cursor: 'pointer' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Needs attention */}
+            <div className="notif-section-title">
+              <AlertOctagon size={13} />
+              Butuh Perhatian ({attentionItems.length})
+            </div>
+            {attentionItems.length === 0 ? (
+              <div className="notif-empty">Semua spare part dalam kondisi baik. 🎉</div>
+            ) : (
+              <>
+                {attentionItems.slice(0, 4).map((p) => (
+                  <div key={p.id} className="notif-item">
+                    <div style={{
+                      width: '34px', height: '34px', borderRadius: '9px', flexShrink: 0,
+                      background: p.status === 'Critical' ? 'rgba(248,113,113,0.15)' : 'rgba(167,139,250,0.15)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      {p.status === 'Critical' ? <AlertOctagon size={16} color="#F87171" /> : <Wrench size={16} color="#A78BFA" />}
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ color: 'var(--txt-primary)', fontWeight: 700, fontSize: '0.85rem' }}>{p.name}</div>
+                      <div style={{ color: 'var(--txt-muted)', fontSize: '0.76rem' }}>
+                        Site {SITE_LABEL[p.site]} &middot; {p.status}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  className="btn-chip"
+                  onClick={() => { setActiveView('maintenance'); setIsNotifOpen(false); }}
+                  style={{ width: '100%', justifyContent: 'center', marginTop: '0.25rem' }}
+                >
+                  Lihat semua di Maintenance
+                  <ArrowRight size={13} />
+                </button>
+              </>
+            )}
+
+            {/* Recent activity */}
+            <div className="notif-section-title">
+              <Activity size={13} />
+              Aktivitas Terbaru
+            </div>
+            {sortedLogs.length === 0 ? (
+              <div className="notif-empty">Belum ada aktivitas.</div>
+            ) : (
+              sortedLogs.slice(0, 8).map((l) => {
+                const meta = ACTION_META[l.action];
+                const Icon = meta.icon;
+                const isNew = (parseLogDate(l.timestamp)?.getTime() ?? 0) > previousReadAtRef.current;
+                return (
+                  <div key={l.id} className={`notif-item${isNew ? ' is-new' : ''}`}>
+                    <div style={{ width: '34px', height: '34px', borderRadius: '9px', flexShrink: 0, background: meta.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon size={16} color={meta.color} />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ color: 'var(--txt-primary)', fontSize: '0.83rem', lineHeight: 1.4 }}>{l.description}</div>
+                      <div style={{ color: 'var(--txt-muted)', fontSize: '0.74rem', marginTop: '0.2rem' }}>{timeAgo(l.timestamp)}</div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+            <button
+              type="button"
+              className="btn-chip"
+              onClick={() => { setActiveView('audit'); setIsNotifOpen(false); }}
+              style={{ width: '100%', justifyContent: 'center', marginTop: '0.5rem' }}
+            >
+              Lihat Semua Log Aktivitas
+              <ArrowRight size={13} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Activity Logs Drawer */}
       {isLogsOpen && (
         <div
@@ -536,18 +729,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ auth, onLogout, 
               width: '100%',
               maxWidth: '450px',
               height: '100vh',
-              background: '#141C2E',
-              borderLeft: '1px solid rgba(255, 255, 255, 0.1)',
+              background: 'var(--bg-surface)',
+              borderLeft: '1px solid var(--border-subtle)',
               padding: '2rem',
               overflowY: 'auto',
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--txt-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Activity size={20} color="#00D084" />
                 Riwayat Log Aktivitas
               </h3>
-              <button onClick={() => setIsLogsOpen(false)} style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer' }}>
+              <button onClick={() => setIsLogsOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--txt-tertiary)', cursor: 'pointer' }}>
                 <X size={20} />
               </button>
             </div>
@@ -565,10 +758,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ auth, onLogout, 
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#00D084', fontWeight: 700 }}>
                     <span>{log.action}</span>
-                    <span style={{ color: '#64748B' }}>{log.timestamp}</span>
+                    <span style={{ color: 'var(--txt-muted)' }}>{log.timestamp}</span>
                   </div>
-                  <div style={{ fontSize: '0.85rem', color: '#FFFFFF', marginTop: '0.4rem', fontWeight: 500 }}>{log.description}</div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.5rem' }}>Oleh: {log.performedBy}</div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--txt-primary)', marginTop: '0.4rem', fontWeight: 500 }}>{log.description}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--txt-muted)', marginTop: '0.5rem' }}>Oleh: {log.performedBy}</div>
                 </div>
               ))}
             </div>

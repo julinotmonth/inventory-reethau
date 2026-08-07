@@ -31,6 +31,10 @@ import {
   AlertOctagon,
   ClipboardCheck,
   Wallet,
+  RefreshCw,
+  PlusCircle,
+  Trash2,
+  Clock,
 } from 'lucide-react';
 import type { SparePart, ActivityLog, SiteLocation } from '../../types';
 import { getCategoryVisual } from '../../data/categoryVisuals';
@@ -58,7 +62,7 @@ export const SETU_GALLERY: { src: string; caption: string }[] = [
   { src: '/assets/images/setu/setu-16.webp', caption: 'Label Barcode Aset pada Furnitur Site' },
 ];
 
-const SITE_LABEL: Record<SiteLocation, string> = {
+export const SITE_LABEL: Record<SiteLocation, string> = {
   bekasi: 'Bekasi',
   indramayu: 'Indramayu',
   blora: 'Blora',
@@ -218,7 +222,7 @@ export const GlobalSearchView: React.FC<{
                 border: '1px solid rgba(255,255,255,0.1)',
                 borderRadius: '10px',
                 padding: '0.85rem 1rem 0.85rem 2.75rem',
-                color: '#FFFFFF',
+                color: 'var(--txt-primary)',
                 fontSize: '0.95rem',
                 outline: 'none',
               }}
@@ -249,18 +253,18 @@ export const GlobalSearchView: React.FC<{
 
       {query && (
         <>
-          <div style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: 700, marginBottom: '0.75rem', textTransform: 'uppercase' }}>
+          <div style={{ fontSize: '0.8rem', color: 'var(--txt-muted)', fontWeight: 700, marginBottom: '0.75rem', textTransform: 'uppercase' }}>
             Spare Part ({partResults.length})
           </div>
           <div className="glass-panel simple-table-wrap" style={{ borderRadius: '16px', marginBottom: '1.5rem' }}>
             <table className="simple-table">
               <tbody>
                 {partResults.length === 0 && (
-                  <tr><td className="cell-empty" style={{ color: '#64748B' }}>Tidak ada spare part yang cocok.</td></tr>
+                  <tr><td className="cell-empty" style={{ color: 'var(--txt-muted)' }}>Tidak ada spare part yang cocok.</td></tr>
                 )}
                 {partResults.map((p) => (
                   <tr key={p.id}>
-                    <td className="cell-lead" style={{ color: '#FFFFFF', fontWeight: 600 }}>
+                    <td className="cell-lead" style={{ color: 'var(--txt-primary)', fontWeight: 600 }}>
                       {p.name}
                       <div style={{ fontFamily: 'monospace', color: '#00D084', fontSize: '0.72rem', fontWeight: 700, marginTop: '0.2rem' }}>{p.sku}</div>
                     </td>
@@ -272,22 +276,22 @@ export const GlobalSearchView: React.FC<{
             </table>
           </div>
 
-          <div style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: 700, marginBottom: '0.75rem', textTransform: 'uppercase' }}>
+          <div style={{ fontSize: '0.8rem', color: 'var(--txt-muted)', fontWeight: 700, marginBottom: '0.75rem', textTransform: 'uppercase' }}>
             Riwayat Aktivitas ({logResults.length})
           </div>
           <div className="glass-panel simple-table-wrap" style={{ borderRadius: '16px' }}>
             <table className="simple-table">
               <tbody>
                 {logResults.length === 0 && (
-                  <tr><td className="cell-empty" style={{ color: '#64748B' }}>Tidak ada aktivitas yang cocok.</td></tr>
+                  <tr><td className="cell-empty" style={{ color: 'var(--txt-muted)' }}>Tidak ada aktivitas yang cocok.</td></tr>
                 )}
                 {logResults.map((l) => (
                   <tr key={l.id}>
-                    <td className="cell-lead" style={{ color: '#FFFFFF' }}>
+                    <td className="cell-lead" style={{ color: 'var(--txt-primary)' }}>
                       {l.description}
-                      <div style={{ color: '#64748B', fontSize: '0.72rem', marginTop: '0.2rem' }}>{l.timestamp}</div>
+                      <div style={{ color: 'var(--txt-muted)', fontSize: '0.72rem', marginTop: '0.2rem' }}>{l.timestamp}</div>
                     </td>
-                    <td data-label="Oleh" style={{ color: '#94A3B8' }}>{l.performedBy}</td>
+                    <td data-label="Oleh" style={{ color: 'var(--txt-tertiary)' }}>{l.performedBy}</td>
                   </tr>
                 ))}
               </tbody>
@@ -302,10 +306,10 @@ export const GlobalSearchView: React.FC<{
             <div className="gsearch-empty-hero-icon">
               <Search size={28} />
             </div>
-            <div style={{ color: '#FFFFFF', fontWeight: 700, fontSize: '1rem', marginBottom: '0.35rem' }}>
+            <div style={{ color: 'var(--txt-primary)', fontWeight: 700, fontSize: '1rem', marginBottom: '0.35rem' }}>
               Mulai ketik atau scan barcode
             </div>
-            <div style={{ color: '#64748B', fontSize: '0.85rem', maxWidth: '420px', margin: '0 auto' }}>
+            <div style={{ color: 'var(--txt-muted)', fontSize: '0.85rem', maxWidth: '420px', margin: '0 auto' }}>
               Cari spare part berdasarkan nama, SKU, kategori, atau spesifikasi — atau langsung scan label barcode/QR di lapangan untuk pencarian instan.
             </div>
           </div>
@@ -418,12 +422,12 @@ export const CategoriesView: React.FC<{ spareParts: SparePart[] }> = ({ sparePar
                     justifyContent: 'center',
                   }}
                 >
-                  <Icon size={20} color={visual?.color || '#94A3B8'} />
+                  <Icon size={20} color={visual?.color || 'var(--txt-tertiary)'} />
                 </div>
-                <div style={{ fontWeight: 700, color: '#FFFFFF', fontSize: '0.9rem' }}>{name}</div>
+                <div style={{ fontWeight: 700, color: 'var(--txt-primary)', fontSize: '0.9rem' }}>{name}</div>
               </div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#FFFFFF' }}>
-                {data.stock} <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: 500 }}>unit / {data.count} jenis</span>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--txt-primary)' }}>
+                {data.stock} <span style={{ fontSize: '0.8rem', color: 'var(--txt-muted)', fontWeight: 500 }}>unit / {data.count} jenis</span>
               </div>
               <div style={{ fontSize: '0.78rem', color: '#00D084', marginTop: '0.4rem' }}>{formatIDR(data.value)}</div>
             </div>
@@ -436,11 +440,11 @@ export const CategoriesView: React.FC<{ spareParts: SparePart[] }> = ({ sparePar
 
 /* ────────────────────────────── Assignments (Transfers) ────────────────────────────── */
 const emptyInputStyle: React.CSSProperties = {
-  background: 'rgba(10, 15, 29, 0.8)',
-  border: '1px solid rgba(255,255,255,0.1)',
+  background: 'var(--bg-root)',
+  border: '1px solid var(--border-subtle)',
   borderRadius: '10px',
   padding: '0.65rem 0.85rem',
-  color: '#FFFFFF',
+  color: 'var(--txt-primary)',
   fontSize: '0.85rem',
   outline: 'none',
 };
@@ -486,7 +490,7 @@ const PartPickerModal: React.FC<{
           onClick={onClose}
           style={{
             position: 'absolute', top: '1.25rem', right: '1.25rem',
-            background: 'rgba(255, 255, 255, 0.05)', border: 'none', color: '#94A3B8',
+            background: 'rgba(255, 255, 255, 0.05)', border: 'none', color: 'var(--txt-tertiary)',
             borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
@@ -499,8 +503,8 @@ const PartPickerModal: React.FC<{
             <SendHorizontal size={22} />
           </div>
           <div style={{ minWidth: 0 }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#FFFFFF' }}>Transfer Baru</h3>
-            <div style={{ fontSize: '0.8rem', color: '#64748B' }}>Pilih spare part yang ingin dipindahkan</div>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--txt-primary)' }}>Transfer Baru</h3>
+            <div style={{ fontSize: '0.8rem', color: 'var(--txt-muted)' }}>Pilih spare part yang ingin dipindahkan</div>
           </div>
         </div>
 
@@ -518,7 +522,7 @@ const PartPickerModal: React.FC<{
 
         <div style={{ maxHeight: '360px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           {results.length === 0 && (
-            <div style={{ color: '#64748B', fontSize: '0.85rem', textAlign: 'center', padding: '1.5rem 0' }}>
+            <div style={{ color: 'var(--txt-muted)', fontSize: '0.85rem', textAlign: 'center', padding: '1.5rem 0' }}>
               Tidak ada spare part dengan stok tersedia yang cocok.
             </div>
           )}
@@ -537,8 +541,8 @@ const PartPickerModal: React.FC<{
             >
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: '0.75rem', color: '#00D084', fontFamily: 'monospace', fontWeight: 700 }}>{p.sku}</div>
-                <div style={{ fontSize: '0.9rem', color: '#FFFFFF', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
-                <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.15rem' }}>
+                <div style={{ fontSize: '0.9rem', color: 'var(--txt-primary)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--txt-muted)', marginTop: '0.15rem' }}>
                   Site {SITE_LABEL[p.site]} &middot; {p.stock} {p.unit} tersedia
                 </div>
               </div>
@@ -675,9 +679,9 @@ export const AssignmentsView: React.FC<{
               <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: `${s.color}26`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <s.icon size={18} color={s.color} />
               </div>
-              <div style={{ fontSize: '0.78rem', color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.02em' }}>{s.label}</div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--txt-tertiary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.02em' }}>{s.label}</div>
             </div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#FFFFFF', lineHeight: 1.2 }}>{s.value}</div>
+            <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--txt-primary)', lineHeight: 1.2 }}>{s.value}</div>
             {s.sub && <div style={{ fontSize: '0.78rem', color: s.color, marginTop: '0.25rem', fontWeight: 600 }}>{s.sub}</div>}
           </div>
         ))}
@@ -685,7 +689,7 @@ export const AssignmentsView: React.FC<{
 
       {/* Filters */}
       <div className="glass-panel" style={{ borderRadius: '16px', padding: '1rem 1.25rem', marginBottom: '1.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748B', fontSize: '0.8rem', fontWeight: 700 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--txt-muted)', fontSize: '0.8rem', fontWeight: 700 }}>
           <Filter size={15} />
           Filter
         </div>
@@ -723,7 +727,7 @@ export const AssignmentsView: React.FC<{
         </button>
       </div>
 
-      <div style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: 700, marginBottom: '0.75rem', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+      <div style={{ fontSize: '0.8rem', color: 'var(--txt-muted)', fontWeight: 700, marginBottom: '0.75rem', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
         <TrendingUp size={14} color="#00D084" />
         Riwayat Transfer ({transfers.length})
       </div>
@@ -741,7 +745,7 @@ export const AssignmentsView: React.FC<{
           <tbody>
             {transfers.length === 0 && (
               <tr>
-                <td className="cell-empty" colSpan={4} style={{ color: '#64748B', textAlign: 'center', padding: '2.5rem' }}>
+                <td className="cell-empty" colSpan={4} style={{ color: 'var(--txt-muted)', textAlign: 'center', padding: '2.5rem' }}>
                   {allTransfers.length === 0 ? (
                     <>
                       Belum ada transfer.
@@ -760,8 +764,8 @@ export const AssignmentsView: React.FC<{
             )}
             {transfers.map((l) => (
               <tr key={l.id}>
-                <td data-label="Waktu" style={{ color: '#64748B', whiteSpace: 'nowrap' }}>{l.timestamp}</td>
-                <td data-label="Deskripsi" className="cell-lead" style={{ color: '#FFFFFF' }}>{l.description}</td>
+                <td data-label="Waktu" style={{ color: 'var(--txt-muted)', whiteSpace: 'nowrap' }}>{l.timestamp}</td>
+                <td data-label="Deskripsi" className="cell-lead" style={{ color: 'var(--txt-primary)' }}>{l.description}</td>
                 <td data-label="Rute">
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', fontWeight: 700, color: SITE_COLOR[l.siteFrom] }}>
@@ -776,7 +780,7 @@ export const AssignmentsView: React.FC<{
                   </span>
                 </td>
                 <td data-label="Oleh">
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: '#94A3B8', justifyContent: 'flex-end', textAlign: 'right' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: 'var(--txt-tertiary)', justifyContent: 'flex-end', textAlign: 'right' }}>
                     <span style={{
                       width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(0, 208, 132, 0.15)', color: '#00D084',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 800, flexShrink: 0,
@@ -867,7 +871,7 @@ const FlagMaintenanceModal: React.FC<{
           onClick={handleClose}
           style={{
             position: 'absolute', top: '1.25rem', right: '1.25rem',
-            background: 'rgba(255, 255, 255, 0.05)', border: 'none', color: '#94A3B8',
+            background: 'rgba(255, 255, 255, 0.05)', border: 'none', color: 'var(--txt-tertiary)',
             borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
@@ -880,8 +884,8 @@ const FlagMaintenanceModal: React.FC<{
             <Wrench size={22} />
           </div>
           <div style={{ minWidth: 0 }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#FFFFFF' }}>Tandai untuk Maintenance</h3>
-            <div style={{ fontSize: '0.8rem', color: '#64748B' }}>Pilih spare part yang butuh servis atau perhatian</div>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--txt-primary)' }}>Tandai untuk Maintenance</h3>
+            <div style={{ fontSize: '0.8rem', color: 'var(--txt-muted)' }}>Pilih spare part yang butuh servis atau perhatian</div>
           </div>
         </div>
 
@@ -900,7 +904,7 @@ const FlagMaintenanceModal: React.FC<{
             </div>
             <div style={{ maxHeight: '340px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               {results.length === 0 && (
-                <div style={{ color: '#64748B', fontSize: '0.85rem', textAlign: 'center', padding: '1.5rem 0' }}>
+                <div style={{ color: 'var(--txt-muted)', fontSize: '0.85rem', textAlign: 'center', padding: '1.5rem 0' }}>
                   Tidak ada spare part yang cocok.
                 </div>
               )}
@@ -929,8 +933,8 @@ const FlagMaintenanceModal: React.FC<{
                     )}
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <div style={{ fontSize: '0.75rem', color: '#00D084', fontFamily: 'monospace', fontWeight: 700 }}>{p.sku}</div>
-                      <div style={{ fontSize: '0.9rem', color: '#FFFFFF', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
-                      <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.1rem' }}>Site {SITE_LABEL[p.site]} &middot; {p.stock} {p.unit}</div>
+                      <div style={{ fontSize: '0.9rem', color: 'var(--txt-primary)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--txt-muted)', marginTop: '0.1rem' }}>Site {SITE_LABEL[p.site]} &middot; {p.stock} {p.unit}</div>
                     </div>
                     <ArrowRight size={16} color="#64748B" style={{ flexShrink: 0 }} />
                   </button>
@@ -950,13 +954,13 @@ const FlagMaintenanceModal: React.FC<{
               )}
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: '0.75rem', color: '#00D084', fontFamily: 'monospace', fontWeight: 700 }}>{selected.sku}</div>
-                <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#FFFFFF' }}>{selected.name}</div>
-                <div style={{ fontSize: '0.78rem', color: '#64748B' }}>Site {SITE_LABEL[selected.site]} &middot; Status saat ini: {selected.status}</div>
+                <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--txt-primary)' }}>{selected.name}</div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--txt-muted)' }}>Site {SITE_LABEL[selected.site]} &middot; Status saat ini: {selected.status}</div>
               </div>
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', color: '#94A3B8', marginBottom: '0.4rem', fontWeight: 600 }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--txt-tertiary)', marginBottom: '0.4rem', fontWeight: 600 }}>
                 Catatan / Alasan (opsional)
               </label>
               <textarea
@@ -1055,16 +1059,16 @@ export const MaintenanceView: React.FC<{
               <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: `${s.color}26`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <s.icon size={18} color={s.color} />
               </div>
-              <div style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.02em' }}>{s.label}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--txt-tertiary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.02em' }}>{s.label}</div>
             </div>
-            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#FFFFFF', lineHeight: 1.2 }}>{s.value}</div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--txt-primary)', lineHeight: 1.2 }}>{s.value}</div>
           </div>
         ))}
       </div>
 
       {/* Filters */}
       <div className="glass-panel" style={{ borderRadius: '16px', padding: '1rem 1.25rem', marginBottom: '1.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748B', fontSize: '0.8rem', fontWeight: 700 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--txt-muted)', fontSize: '0.8rem', fontWeight: 700 }}>
           <Filter size={15} />
           Filter
         </div>
@@ -1096,7 +1100,7 @@ export const MaintenanceView: React.FC<{
         )}
       </div>
 
-      <div style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: 700, marginBottom: '0.75rem', textTransform: 'uppercase' }}>
+      <div style={{ fontSize: '0.8rem', color: 'var(--txt-muted)', fontWeight: 700, marginBottom: '0.75rem', textTransform: 'uppercase' }}>
         Daftar Item ({items.length})
       </div>
 
@@ -1115,7 +1119,7 @@ export const MaintenanceView: React.FC<{
           <tbody>
             {items.length === 0 && (
               <tr>
-                <td className="cell-empty" colSpan={6} style={{ color: '#64748B', textAlign: 'center', padding: '2.5rem' }}>
+                <td className="cell-empty" colSpan={6} style={{ color: 'var(--txt-muted)', textAlign: 'center', padding: '2.5rem' }}>
                   {allItems.length === 0 ? 'Tidak ada item yang butuh perhatian. 🎉' : 'Tidak ada item yang cocok dengan filter saat ini.'}
                 </td>
               </tr>
@@ -1138,7 +1142,7 @@ export const MaintenanceView: React.FC<{
                       )}
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontFamily: 'monospace', color: '#00D084', fontSize: '0.75rem', fontWeight: 700 }}>{p.sku}</div>
-                        <div style={{ color: '#FFFFFF', fontWeight: 600 }}>{p.name}</div>
+                        <div style={{ color: 'var(--txt-primary)', fontWeight: 600 }}>{p.name}</div>
                       </div>
                     </div>
                   </td>
@@ -1155,8 +1159,8 @@ export const MaintenanceView: React.FC<{
                       {p.status}
                     </span>
                   </td>
-                  <td data-label="Stok / Min" style={{ color: p.stock <= p.minStock ? meta.color : '#CBD5E1', fontWeight: 700 }}>{p.stock} / {p.minStock}</td>
-                  <td data-label="Terakhir Diperiksa" style={{ color: '#94A3B8' }}>{p.lastInspected}</td>
+                  <td data-label="Stok / Min" style={{ color: p.stock <= p.minStock ? meta.color : 'var(--txt-secondary)', fontWeight: 700 }}>{p.stock} / {p.minStock}</td>
+                  <td data-label="Terakhir Diperiksa" style={{ color: 'var(--txt-tertiary)' }}>{p.lastInspected}</td>
                   <td className="cell-action" style={{ textAlign: 'right' }}>
                     <button
                       type="button"
@@ -1186,35 +1190,262 @@ export const MaintenanceView: React.FC<{
 };
 
 /* ────────────────────────────── Audit / Log ────────────────────────────── */
+export const ACTION_META: Record<ActivityLog['action'], { label: string; color: string; bg: string; icon: React.ElementType }> = {
+  TRANSFER: { label: 'Transfer Antar Site', color: '#00D084', bg: 'rgba(0, 208, 132, 0.12)', icon: ArrowLeftRight },
+  STOCK_UPDATE: { label: 'Update Stok', color: '#60A5FA', bg: 'rgba(96, 165, 250, 0.12)', icon: RefreshCw },
+  ADD_SPARE_PART: { label: 'Item Baru', color: '#34D399', bg: 'rgba(52, 211, 153, 0.12)', icon: PlusCircle },
+  DELETE_SPARE_PART: { label: 'Item Dihapus', color: '#F87171', bg: 'rgba(248, 113, 113, 0.12)', icon: Trash2 },
+};
+
+/** Parses the app's canonical "YYYY-MM-DD HH:mm" log timestamp. Falls back
+ * to native Date parsing for any legacy/odd formats so nothing crashes. */
+export function parseLogDate(ts: string): Date | null {
+  const iso = ts.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/);
+  if (iso) {
+    const [, y, mo, d, h, mi] = iso;
+    return new Date(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi));
+  }
+  const fallback = new Date(ts);
+  return Number.isNaN(fallback.getTime()) ? null : fallback;
+}
+
+export function timeAgo(ts: string): string {
+  const date = parseLogDate(ts);
+  if (!date) return ts;
+  const diffMs = Date.now() - date.getTime();
+  const minutes = Math.floor(diffMs / 60000);
+  if (minutes < 1) return 'Baru saja';
+  if (minutes < 60) return `${minutes} menit lalu`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} jam lalu`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days} hari lalu`;
+  return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
 export const AuditView: React.FC<{ logs: ActivityLog[] }> = ({ logs }) => {
+  const [search, setSearch] = useState('');
+  const [actionFilter, setActionFilter] = useState<'all' | ActivityLog['action']>('all');
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+
+  const sortedAll = useMemo(
+    () =>
+      [...logs].sort((a, b) => {
+        const da = parseLogDate(a.timestamp)?.getTime() ?? 0;
+        const db = parseLogDate(b.timestamp)?.getTime() ?? 0;
+        return db - da;
+      }),
+    [logs]
+  );
+
+  const filtersActive = search.trim() !== '' || actionFilter !== 'all';
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    let list = sortedAll.filter((l) => {
+      if (actionFilter !== 'all' && l.action !== actionFilter) return false;
+      if (q && !l.description.toLowerCase().includes(q) && !l.performedBy.toLowerCase().includes(q)) return false;
+      return true;
+    });
+    if (sortOrder === 'oldest') list = [...list].reverse();
+    return list;
+  }, [sortedAll, search, actionFilter, sortOrder]);
+
+  const weekCount = useMemo(() => {
+    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return sortedAll.filter((l) => {
+      const t = parseLogDate(l.timestamp)?.getTime();
+      return t !== undefined && t !== null && t >= cutoff;
+    }).length;
+  }, [sortedAll]);
+
+  const countByAction = (action: ActivityLog['action']) => sortedAll.filter((l) => l.action === action).length;
+
+  const statCards = [
+    { label: 'Total Aktivitas', value: sortedAll.length, icon: History, color: '#00D084' },
+    { label: '7 Hari Terakhir', value: weekCount, icon: CalendarClock, color: '#FBBF24' },
+    { label: 'Transfer', value: countByAction('TRANSFER'), icon: ArrowLeftRight, color: '#00D084' },
+    { label: 'Update Stok', value: countByAction('STOCK_UPDATE'), icon: RefreshCw, color: '#60A5FA' },
+    { label: 'Perubahan Katalog', value: countByAction('ADD_SPARE_PART') + countByAction('DELETE_SPARE_PART'), icon: ClipboardList, color: '#C084FC' },
+  ];
+
+  const resetFilters = () => {
+    setSearch('');
+    setActionFilter('all');
+  };
+
+  const handleExportCsv = () => {
+    const header = ['Waktu', 'Aksi', 'Deskripsi', 'Oleh'];
+    const rows = filtered.map((l) => [l.timestamp, ACTION_META[l.action].label, l.description.replace(/"/g, "'"), l.performedBy.replace(/"/g, "'")]);
+    const csv = [header, ...rows].map((r) => r.map((cell) => `"${cell}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `reethau-audit-log-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const actionChips: Array<{ key: 'all' | ActivityLog['action']; label: string }> = [
+    { key: 'all', label: 'Semua' },
+    { key: 'TRANSFER', label: ACTION_META.TRANSFER.label },
+    { key: 'STOCK_UPDATE', label: ACTION_META.STOCK_UPDATE.label },
+    { key: 'ADD_SPARE_PART', label: ACTION_META.ADD_SPARE_PART.label },
+    { key: 'DELETE_SPARE_PART', label: ACTION_META.DELETE_SPARE_PART.label },
+  ];
+
   return (
     <div>
-      <PageHeader icon={ClipboardList} title="Audit / Log Aktivitas" sub="Seluruh riwayat perubahan data inventaris" />
-      <div className="glass-panel simple-table-wrap" style={{ borderRadius: '16px', padding: '0.5rem' }}>
-        <table className="simple-table">
-          <thead>
-            <tr>
-              <th>Waktu</th>
-              <th>Aksi</th>
-              <th>Deskripsi</th>
-              <th>Oleh</th>
-            </tr>
-          </thead>
-          <tbody>
-            {logs.length === 0 && (
-              <tr><td className="cell-empty" colSpan={4} style={{ color: '#64748B', textAlign: 'center', padding: '2rem' }}>Belum ada log.</td></tr>
-            )}
-            {logs.map((l) => (
-              <tr key={l.id}>
-                <td data-label="Waktu" style={{ color: '#64748B', whiteSpace: 'nowrap' }}>{l.timestamp}</td>
-                <td data-label="Aksi" style={{ color: '#00D084', fontWeight: 700, fontSize: '0.75rem' }}>{l.action}</td>
-                <td className="cell-lead" style={{ color: '#FFFFFF' }}>{l.description}</td>
-                <td data-label="Oleh" style={{ color: '#94A3B8' }}>{l.performedBy}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="view-toolbar-row" style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        <PageHeader icon={ClipboardList} title="Audit / Log Aktivitas" sub="Seluruh riwayat perubahan data inventaris, tercatat otomatis dan tidak dapat diubah" />
+        <button
+          type="button"
+          className="btn-chip view-toolbar-btn"
+          onClick={handleExportCsv}
+          disabled={filtered.length === 0}
+          style={filtered.length === 0 ? { opacity: 0.5, cursor: 'not-allowed', justifyContent: 'center' } : { justifyContent: 'center' }}
+        >
+          <Download size={15} />
+          Ekspor CSV
+        </button>
       </div>
+
+      {/* Summary cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+        {statCards.map((s) => (
+          <div key={s.label} className="glass-panel" style={{ borderRadius: '16px', padding: '1.1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.65rem' }}>
+              <div style={{ width: '34px', height: '34px', borderRadius: '9px', background: `${s.color}26`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <s.icon size={16} color={s.color} />
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--txt-tertiary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.02em' }}>{s.label}</div>
+            </div>
+            <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--txt-primary)', lineHeight: 1.2 }}>{s.value.toLocaleString('id-ID')}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div className="glass-panel" style={{ borderRadius: '16px', padding: '1rem 1.25rem', marginBottom: '1.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
+        <div style={{ position: 'relative', flex: '1 1 220px', minWidth: '180px' }}>
+          <Search size={15} color="#64748B" style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }} />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Cari deskripsi atau nama petugas..."
+            style={{ ...emptyInputStyle, width: '100%', padding: '0.65rem 0.85rem 0.65rem 2.25rem' }}
+          />
+        </div>
+        <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')} style={{ ...emptyInputStyle, cursor: 'pointer', flex: '1 1 150px' }}>
+          <option value="newest">Terbaru dahulu</option>
+          <option value="oldest">Terlama dahulu</option>
+        </select>
+        {filtersActive && (
+          <button type="button" className="btn-chip" onClick={resetFilters}>
+            <RotateCcw size={14} />
+            Reset
+          </button>
+        )}
+      </div>
+
+      {/* Action type chips */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1.5rem' }}>
+        {actionChips.map((chip) => {
+          const isActive = actionFilter === chip.key;
+          const meta = chip.key === 'all' ? null : ACTION_META[chip.key];
+          return (
+            <button
+              key={chip.key}
+              type="button"
+              onClick={() => setActionFilter(chip.key)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                fontSize: '0.78rem', fontWeight: 700, padding: '0.45rem 0.9rem', borderRadius: '999px',
+                cursor: 'pointer', transition: 'all 0.15s ease',
+                color: isActive ? 'var(--txt-inverse)' : meta ? meta.color : 'var(--txt-secondary)',
+                background: isActive ? (meta ? meta.color : '#00D084') : meta ? meta.bg : 'rgba(255,255,255,0.06)',
+                border: `1px solid ${isActive ? 'transparent' : meta ? `${meta.color}44` : 'rgba(255,255,255,0.12)'}`,
+              }}
+            >
+              {meta && <meta.icon size={13} />}
+              {chip.label}
+              <span style={{ opacity: 0.75, fontWeight: 800 }}>
+                {chip.key === 'all' ? sortedAll.length : countByAction(chip.key)}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Timeline */}
+      {filtered.length === 0 ? (
+        <div className="glass-panel" style={{ borderRadius: '16px', padding: '3rem 1.5rem', textAlign: 'center', color: 'var(--txt-muted)' }}>
+          {sortedAll.length === 0 ? 'Belum ada log aktivitas.' : 'Tidak ada log yang cocok dengan filter saat ini.'}
+        </div>
+      ) : (
+        <div className="glass-panel audit-timeline" style={{ borderRadius: '16px', padding: '1.5rem' }}>
+          {filtered.map((l, i) => {
+            const meta = ACTION_META[l.action];
+            const Icon = meta.icon;
+            return (
+              <div key={l.id} className="audit-timeline-item">
+                <div className="audit-timeline-rail">
+                  <div className="audit-timeline-dot" style={{ background: meta.bg, border: `2px solid ${meta.color}` }}>
+                    <Icon size={15} color={meta.color} />
+                  </div>
+                  {i < filtered.length - 1 && <div className="audit-timeline-line" />}
+                </div>
+                <div className="audit-timeline-content">
+                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
+                    <span
+                      style={{
+                        fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em',
+                        color: meta.color, background: meta.bg, padding: '0.2rem 0.55rem', borderRadius: '999px',
+                      }}
+                    >
+                      {meta.label}
+                    </span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--txt-muted)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                      <Clock size={11} />
+                      {timeAgo(l.timestamp)} &middot; {l.timestamp}
+                    </span>
+                  </div>
+                  <div style={{ color: 'var(--txt-primary)', fontSize: '0.92rem', lineHeight: 1.5, marginBottom: '0.5rem' }}>{l.description}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--txt-tertiary)', fontSize: '0.8rem' }}>
+                    <span style={{
+                      width: '22px', height: '22px', borderRadius: '50%', background: 'rgba(255,255,255,0.06)', color: 'var(--txt-secondary)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.62rem', fontWeight: 800, flexShrink: 0,
+                    }}>
+                      {initialsOf(l.performedBy)}
+                    </span>
+                    {l.performedBy}
+                    {l.siteFrom && (
+                      <>
+                        <span style={{ color: 'var(--txt-muted)' }}>&bull;</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: SITE_COLOR[l.siteFrom] }} />
+                          Site {SITE_LABEL[l.siteFrom]}
+                          {l.siteTo && (
+                            <>
+                              <ArrowRight size={11} color="#64748B" />
+                              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: SITE_COLOR[l.siteTo] }} />
+                              Site {SITE_LABEL[l.siteTo]}
+                            </>
+                          )}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };
@@ -1249,7 +1480,7 @@ export const BranchesView: React.FC<{ spareParts: SparePart[] }> = ({ spareParts
                   <div className="site-card-label"><MapPin size={16} />Site {SITE_LABEL[site]}</div>
                   <div className="site-card-sub">{SITE_SUB[site]}</div>
                 </div>
-                <div style={{ display: 'flex', gap: '1rem', fontSize: '0.75rem', color: '#fff' }}>
+                <div style={{ display: 'flex', gap: '1rem', fontSize: '0.75rem', color: 'var(--txt-primary)' }}>
                   <span>{items.length} jenis part</span>
                   <span>{lowStock} stok kritis</span>
                 </div>
@@ -1348,9 +1579,9 @@ export const ProductLinesView: React.FC<{ spareParts: SparePart[] }> = ({ spareP
           const value = items.reduce((acc, p) => acc + p.stock * p.priceEstimate, 0);
           return (
             <div key={line} className="glass-panel" style={{ borderRadius: '16px', padding: '1.25rem', borderTop: `3px solid ${colors[line]}` }}>
-              <div style={{ fontSize: '0.85rem', color: '#94A3B8', fontWeight: 700 }}>{line} Line</div>
-              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#FFFFFF', marginTop: '0.5rem' }}>
-                {stock} <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: 500 }}>unit / {items.length} jenis</span>
+              <div style={{ fontSize: '0.85rem', color: 'var(--txt-tertiary)', fontWeight: 700 }}>{line} Line</div>
+              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--txt-primary)', marginTop: '0.5rem' }}>
+                {stock} <span style={{ fontSize: '0.8rem', color: 'var(--txt-muted)', fontWeight: 500 }}>unit / {items.length} jenis</span>
               </div>
               <div style={{ fontSize: '0.8rem', color: colors[line], marginTop: '0.4rem', fontWeight: 700 }}>{formatIDR(value)}</div>
             </div>
@@ -1383,14 +1614,14 @@ export const TeamView: React.FC<{ logs: ActivityLog[] }> = ({ logs }) => {
       <PageHeader icon={Users} title="Tim Lapangan" sub="Personel yang tercatat aktif melakukan perubahan data inventaris" />
       <div className="roster-grid">
         {roster.length === 0 && (
-          <div style={{ color: '#64748B' }}>Belum ada aktivitas tercatat.</div>
+          <div style={{ color: 'var(--txt-muted)' }}>Belum ada aktivitas tercatat.</div>
         )}
         {roster.map(([name, count]) => (
           <div key={name} className="glass-panel roster-card">
             <div className="roster-avatar">{initials(name)}</div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ color: '#FFFFFF', fontWeight: 700, fontSize: '0.88rem' }}>{name}</div>
-              <div style={{ color: '#64748B', fontSize: '0.75rem', marginTop: '0.15rem' }}>{count} aktivitas tercatat</div>
+              <div style={{ color: 'var(--txt-primary)', fontWeight: 700, fontSize: '0.88rem' }}>{name}</div>
+              <div style={{ color: 'var(--txt-muted)', fontSize: '0.75rem', marginTop: '0.15rem' }}>{count} aktivitas tercatat</div>
             </div>
           </div>
         ))}

@@ -14,7 +14,7 @@ import {
   Area,
 } from 'recharts';
 import { Activity, AlertTriangle, ArrowRightLeft, PackagePlus, Trash2 } from 'lucide-react';
-import type { SparePart, ActivityLog, SiteLocation } from '../../types';
+import type { SparePart, ActivityLog } from '../../types';
 import { CATEGORY_VISUAL } from '../../data/categoryVisuals';
 
 interface AdminAnalyticsProps {
@@ -22,16 +22,11 @@ interface AdminAnalyticsProps {
   logs: ActivityLog[];
 }
 
+import { SITE_LABEL, getSites } from '../../data/siteStore';
+
 const CATEGORY_COLORS: Record<string, string> = Object.fromEntries(
   Object.entries(CATEGORY_VISUAL).map(([key, val]) => [key, val.color])
 );
-
-const SITE_LABEL: Record<SiteLocation, string> = {
-  bekasi: 'Bekasi',
-  indramayu: 'Indramayu',
-  blora: 'Blora',
-  setu: 'Setu',
-};
 
 const ACTION_META: Record<ActivityLog['action'], { icon: React.ElementType; color: string }> = {
   TRANSFER: { icon: ArrowRightLeft, color: '#00D084' },
@@ -56,10 +51,10 @@ export const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ spareParts, logs
   ).map(([name, value]) => ({ name, value }));
 
   // Value by site
-  const siteData = (['bekasi', 'indramayu', 'blora', 'setu'] as SiteLocation[]).map((site) => ({
-    site: SITE_LABEL[site],
+  const siteData = getSites().map((s) => ({
+    site: s.label,
     value: spareParts
-      .filter((p) => p.site === site)
+      .filter((p) => p.site === s.key)
       .reduce((acc, p) => acc + p.stock * p.priceEstimate, 0),
   }));
 
@@ -117,11 +112,11 @@ export const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ spareParts, logs
                 strokeWidth={0}
               >
                 {categoryData.map((entry) => (
-                  <Cell key={entry.name} fill={CATEGORY_COLORS[entry.name] || '#64748B'} />
+                  <Cell key={entry.name} fill={CATEGORY_COLORS[entry.name] || 'var(--txt-muted)'} />
                 ))}
               </Pie>
               <Tooltip
-                contentStyle={{ background: '#141C2E', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12 }}
+                contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 8, fontSize: 12 }}
                 formatter={(value: any, name: any) => [`${value} unit`, name]}
               />
             </PieChart>
@@ -130,7 +125,7 @@ export const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ spareParts, logs
         <div className="analytics-legend">
           {categoryData.map((entry) => (
             <div key={entry.name} className="analytics-legend-item">
-              <span className="analytics-legend-dot" style={{ background: CATEGORY_COLORS[entry.name] || '#64748B' }} />
+              <span className="analytics-legend-dot" style={{ background: CATEGORY_COLORS[entry.name] || 'var(--txt-muted)' }} />
               {entry.name}
               <span className="analytics-legend-value">{entry.value}</span>
             </div>
@@ -146,9 +141,9 @@ export const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ spareParts, logs
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={siteData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
-              <XAxis dataKey="site" stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} />
+              <XAxis dataKey="site" stroke="var(--txt-muted)" fontSize={12} tickLine={false} axisLine={false} />
               <YAxis
-                stroke="#64748B"
+                stroke="var(--txt-muted)"
                 fontSize={11}
                 tickLine={false}
                 axisLine={false}
@@ -156,7 +151,7 @@ export const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ spareParts, logs
                 width={60}
               />
               <Tooltip
-                contentStyle={{ background: '#141C2E', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12 }}
+                contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 8, fontSize: 12 }}
                 formatter={(value: any) => [formatCompactIDR(Number(value)), 'Nilai']}
                 cursor={{ fill: 'rgba(255,255,255,0.03)' }}
               />
@@ -180,10 +175,10 @@ export const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ spareParts, logs
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
-              <XAxis dataKey="label" stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} />
-              <YAxis stroke="#64748B" fontSize={11} tickLine={false} axisLine={false} allowDecimals={false} width={28} />
+              <XAxis dataKey="label" stroke="var(--txt-muted)" fontSize={12} tickLine={false} axisLine={false} />
+              <YAxis stroke="var(--txt-muted)" fontSize={11} tickLine={false} axisLine={false} allowDecimals={false} width={28} />
               <Tooltip
-                contentStyle={{ background: '#141C2E', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12 }}
+                contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 8, fontSize: 12 }}
                 formatter={(value: any) => [`${value} aktivitas`, '']}
               />
               <Area type="monotone" dataKey="count" stroke="#00D084" strokeWidth={2} fill="url(#activityFill)" />
@@ -198,7 +193,7 @@ export const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ spareParts, logs
         <div className="analytics-card-sub">Aktivitas terbaru di seluruh site</div>
         <div className="analytics-feed">
           {recentLogs.length === 0 && (
-            <div style={{ color: '#64748B', fontSize: '0.85rem', padding: '1rem 0' }}>Belum ada aktivitas.</div>
+            <div style={{ color: 'var(--txt-muted)', fontSize: '0.85rem', padding: '1rem 0' }}>Belum ada aktivitas.</div>
           )}
           {recentLogs.map((log) => {
             const meta = ACTION_META[log.action] || ACTION_META.STOCK_UPDATE;
@@ -229,7 +224,7 @@ export const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({ spareParts, logs
         <div className="analytics-card-sub">Item dengan stok di bawah atau mendekati ambang minimum</div>
         <div className="analytics-critical-grid">
           {criticalItems.length === 0 && (
-            <div style={{ color: '#64748B', fontSize: '0.85rem', padding: '1rem 0' }}>
+            <div style={{ color: 'var(--txt-muted)', fontSize: '0.85rem', padding: '1rem 0' }}>
               Semua stok dalam kondisi aman. 🎉
             </div>
           )}

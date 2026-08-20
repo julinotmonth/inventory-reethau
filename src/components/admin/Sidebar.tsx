@@ -12,6 +12,7 @@ import {
   Users,
   Images,
   X,
+  UserCog,
 } from 'lucide-react';
 
 export type AdminView =
@@ -25,13 +26,16 @@ export type AdminView =
   | 'branches'
   | 'product-lines'
   | 'team'
-  | 'gallery';
+  | 'gallery'
+  | 'users';
 
 interface SidebarProps {
   active: AdminView;
   onNavigate: (view: AdminView) => void;
   isOpen: boolean;
   onClose: () => void;
+  showUserManagement?: boolean;
+  galleryLabel?: string;
 }
 
 const NAV_GROUPS: { title: string; items: { id: AdminView; label: string; icon: React.ElementType }[] }[] = [
@@ -63,13 +67,30 @@ const NAV_GROUPS: { title: string; items: { id: AdminView; label: string; icon: 
   },
 ];
 
-export const Sidebar: React.FC<SidebarProps> = ({ active, onNavigate, isOpen, onClose }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ active, onNavigate, isOpen, onClose, showUserManagement, galleryLabel }) => {
+  let navGroups = showUserManagement
+    ? NAV_GROUPS.map((group) =>
+        group.title === 'Organisasi'
+          ? { ...group, items: [...group.items, { id: 'users' as AdminView, label: 'Kelola Pengguna', icon: UserCog }] }
+          : group
+      )
+    : NAV_GROUPS;
+
+  if (galleryLabel) {
+    navGroups = navGroups.map((group) =>
+      group.title === 'Organisasi'
+        ? { ...group, items: group.items.map((item) => (item.id === 'gallery' ? { ...item, label: galleryLabel } : item)) }
+        : group
+    );
+  }
+
   return (
     <>
       <div className={`admin-sidebar-overlay${isOpen ? ' open' : ''}`} onClick={onClose} />
       <aside className={`admin-sidebar${isOpen ? ' open' : ''}`}>
         <div className="admin-sidebar-brand">
-          <img src="/assets/images/logo-white.webp" alt="Reethau" />
+          <img src="/assets/images/logo-white.webp" alt="Reethau" className="brand-logo-dark" />
+          <img src="/assets/images/logo-black.webp" alt="Reethau" className="brand-logo-light" />
           <button
             onClick={onClose}
             className="admin-sidebar-close-btn"
@@ -85,7 +106,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ active, onNavigate, isOpen, on
           </button>
         </div>
 
-        {NAV_GROUPS.map((group) => (
+        {navGroups.map((group) => (
           <div key={group.title} className="admin-sidebar-group">
             <div className="admin-sidebar-group-title">{group.title}</div>
             {group.items.map((item) => {

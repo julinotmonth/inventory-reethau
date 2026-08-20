@@ -25,6 +25,10 @@ export function App() {
     setCurrentView('admin');
   };
 
+  const handleUpdateAuth = (patch: Partial<AuthState>) => {
+    setAuth((prev) => ({ ...prev, ...patch }));
+  };
+
   const handleLogout = () => {
     setAuth({
       isAuthenticated: false,
@@ -41,6 +45,7 @@ export function App() {
         auth={auth}
         onLogout={handleLogout}
         onGoToPublicSite={() => setCurrentView('public')}
+        onUpdateAuth={handleUpdateAuth}
       />
     );
   }

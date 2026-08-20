@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ArrowRightLeft, Send } from 'lucide-react';
 import type { SparePart, SiteLocation } from '../../types';
+import { getSites, getSiteMeta } from '../../data/siteStore';
 
 interface TransferModalProps {
   isOpen: boolean;
@@ -12,17 +13,22 @@ interface TransferModalProps {
 
 export const TransferModal: React.FC<TransferModalProps> = ({ isOpen, item, onClose, onConfirmTransfer }) => {
   const [quantity, setQuantity] = useState(1);
-  const [targetSite, setTargetSite] = useState<SiteLocation>('indramayu');
+  const [targetSite, setTargetSite] = useState<SiteLocation>('');
   const [error, setError] = useState('');
 
-  if (!isOpen || !item) return null;
+  const sitesList = getSites().map((s) => ({ id: s.key, name: `Site ${s.label} (${s.subtitle})` }));
 
-  const sitesList: { id: SiteLocation; name: string }[] = [
-    { id: 'bekasi', name: 'Site Bekasi (Mother Station CNG)' },
-    { id: 'indramayu', name: 'Site Indramayu (Daughter Station CNG)' },
-    { id: 'blora', name: 'Site Blora (Wellhead & Processing)' },
-    { id: 'setu', name: 'Site Setu (Compressor Station & Fleet Room)' },
-  ];
+  useEffect(() => {
+    if (isOpen && item) {
+      setQuantity(1);
+      setError('');
+      const firstOther = sitesList.find((s) => s.id !== item.site);
+      setTargetSite(firstOther?.id ?? '');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, item?.id]);
+
+  if (!isOpen || !item) return null;
 
   const handleTransfer = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,9 +60,9 @@ export const TransferModal: React.FC<TransferModalProps> = ({ isOpen, item, onCl
             position: 'absolute',
             top: '1.25rem',
             right: '1.25rem',
-            background: 'rgba(255, 255, 255, 0.05)',
+            background: 'var(--chip-bg)',
             border: 'none',
-            color: '#94A3B8',
+            color: 'var(--txt-tertiary)',
             borderRadius: '50%',
             width: '32px',
             height: '32px',
@@ -86,24 +92,24 @@ export const TransferModal: React.FC<TransferModalProps> = ({ isOpen, item, onCl
             <ArrowRightLeft size={24} />
           </div>
           <div style={{ minWidth: 0 }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#FFFFFF' }}>Transfer Spare Part Antar Site</h3>
-            <div style={{ fontSize: '0.8rem', color: '#64748B' }}>Modul Distribusi Logistik Reethau</div>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--txt-primary)' }}>Transfer Spare Part Antar Site</h3>
+            <div style={{ fontSize: '0.8rem', color: 'var(--txt-muted)' }}>Modul Distribusi Logistik Reethau</div>
           </div>
         </div>
 
         <div
           style={{
-            background: 'rgba(10, 15, 29, 0.8)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
+            background: 'var(--bg-root)',
+            border: '1px solid var(--border-subtle)',
             borderRadius: '12px',
             padding: '1rem',
             marginBottom: '1.5rem',
           }}
         >
           <div style={{ fontSize: '0.75rem', color: '#00D084', fontWeight: 700 }}>SKU: {item.sku}</div>
-          <div style={{ fontSize: '1rem', fontWeight: 700, color: '#FFFFFF', marginTop: '0.2rem' }}>{item.name}</div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', fontSize: '0.85rem', color: '#94A3B8' }}>
-            <span>Asal: <strong style={{ color: '#FFFFFF', textTransform: 'capitalize' }}>Site {item.site}</strong></span>
+          <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--txt-primary)', marginTop: '0.2rem' }}>{item.name}</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--txt-tertiary)' }}>
+            <span>Asal: <strong style={{ color: 'var(--txt-primary)' }}>Site {getSiteMeta(item.site).label}</strong></span>
             <span>Stok Tersedia: <strong style={{ color: '#00D084' }}>{item.stock} {item.unit}</strong></span>
           </div>
         </div>
@@ -116,7 +122,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({ isOpen, item, onCl
 
         <form onSubmit={handleTransfer} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', color: '#94A3B8', marginBottom: '0.4rem', fontWeight: 600 }}>
+            <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--txt-tertiary)', marginBottom: '0.4rem', fontWeight: 600 }}>
               Pilih Site Tujuan
             </label>
             <select
@@ -124,11 +130,11 @@ export const TransferModal: React.FC<TransferModalProps> = ({ isOpen, item, onCl
               onChange={(e) => setTargetSite(e.target.value as SiteLocation)}
               style={{
                 width: '100%',
-                background: '#0A0F1D',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                background: 'var(--bg-root)',
+                border: '1px solid var(--border-subtle)',
                 borderRadius: '10px',
                 padding: '0.75rem 1rem',
-                color: '#FFFFFF',
+                color: 'var(--txt-primary)',
                 fontSize: '0.95rem',
                 outline: 'none',
               }}
@@ -142,7 +148,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({ isOpen, item, onCl
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', color: '#94A3B8', marginBottom: '0.4rem', fontWeight: 600 }}>
+            <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--txt-tertiary)', marginBottom: '0.4rem', fontWeight: 600 }}>
               Jumlah Unit Transfer ({item.unit})
             </label>
             <input
@@ -153,11 +159,11 @@ export const TransferModal: React.FC<TransferModalProps> = ({ isOpen, item, onCl
               onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
               style={{
                 width: '100%',
-                background: 'rgba(10, 15, 29, 0.8)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                background: 'var(--bg-root)',
+                border: '1px solid var(--border-subtle)',
                 borderRadius: '10px',
                 padding: '0.75rem 1rem',
-                color: '#FFFFFF',
+                color: 'var(--txt-primary)',
                 fontSize: '1rem',
                 fontWeight: 700,
                 outline: 'none',

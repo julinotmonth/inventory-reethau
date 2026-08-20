@@ -188,7 +188,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({ isOpen
             <ScanLine size={24} />
           </div>
           <div style={{ minWidth: 0 }}>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#FFFFFF' }}>Scan Barcode / QR</h3>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--txt-primary)' }}>Scan Barcode / QR</h3>
             <div style={{ fontSize: '0.8rem', color: '#64748B' }}>Arahkan kamera ke label SKU atau QR spare part</div>
           </div>
         </div>

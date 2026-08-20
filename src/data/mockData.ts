@@ -1,4 +1,4 @@
-import type { SparePart, ActivityLog } from '../types';
+import type { SparePart, ActivityLog, AppUser } from '../types';
 
 export const INITIAL_SPARE_PARTS: SparePart[] = [
   {
@@ -213,4 +213,34 @@ export const INITIAL_LOGS: ActivityLog[] = [
     performedBy: 'Admin (Super Admin)',
     siteFrom: 'setu'
   }
+];
+
+export const INITIAL_USERS: AppUser[] = [
+  {
+    id: 'user-admin',
+    name: 'Admin',
+    email: 'admin@reethau.com',
+    position: 'Super Admin',
+    role: 'Super Admin',
+    assignedSite: 'global',
+    createdAt: '2026-01-05',
+  },
+  {
+    id: 'user-hendra',
+    name: 'Hendra Gunawan',
+    email: 'hendra.gunawan@reethau.com',
+    position: 'Site Manager Bekasi',
+    role: 'Site Manager',
+    assignedSite: 'bekasi',
+    createdAt: '2026-02-10',
+  },
+  {
+    id: 'user-budi',
+    name: 'Budi Santoso',
+    email: 'budi.santoso@reethau.com',
+    position: 'Admin Inventaris',
+    role: 'Maintenance Engineer',
+    assignedSite: 'blora',
+    createdAt: '2026-03-18',
+  },
 ];

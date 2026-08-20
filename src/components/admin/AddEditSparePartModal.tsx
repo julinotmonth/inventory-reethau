@@ -8,6 +8,7 @@ import {
   addSparePartCategory,
   addProductEnergyCategory,
 } from '../../data/categoryStore';
+import { getSites, useSitesRefresh } from '../../data/siteStore';
 
 interface AddEditSparePartModalProps {
   isOpen: boolean;
@@ -20,18 +21,18 @@ const ADD_NEW_VALUE = '__add_new_category__';
 
 const selectStyle: React.CSSProperties = {
   width: '100%',
-  background: '#0A0F1D',
-  border: '1px solid rgba(255, 255, 255, 0.1)',
+  background: 'var(--bg-root)',
+  border: '1px solid var(--border-subtle)',
   borderRadius: '8px',
   padding: '0.65rem 0.85rem',
-  color: '#FFFFFF',
+  color: 'var(--txt-primary)',
   outline: 'none',
 };
 
 const labelStyle: React.CSSProperties = {
   display: 'block',
   fontSize: '0.8rem',
-  color: '#94A3B8',
+  color: 'var(--txt-tertiary)',
   marginBottom: '0.3rem',
   fontWeight: 600,
 };
@@ -96,11 +97,11 @@ const CategorySelect: React.FC<{
             style={{
               flex: 1,
               minWidth: 0,
-              background: 'rgba(10, 15, 29, 0.8)',
+              background: 'var(--bg-root)',
               border: '1px solid rgba(0, 208, 132, 0.5)',
               borderRadius: '8px',
               padding: '0.65rem 0.85rem',
-              color: '#FFFFFF',
+              color: 'var(--txt-primary)',
               outline: 'none',
             }}
           />
@@ -114,7 +115,7 @@ const CategorySelect: React.FC<{
               borderRadius: '8px',
               border: 'none',
               background: '#00D084',
-              color: '#0A0F1D',
+              color: 'var(--txt-inverse)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -131,9 +132,9 @@ const CategorySelect: React.FC<{
               flexShrink: 0,
               width: '38px',
               borderRadius: '8px',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              background: 'rgba(255, 255, 255, 0.05)',
-              color: '#94A3B8',
+              border: '1px solid var(--border-subtle)',
+              background: 'var(--chip-bg)',
+              color: 'var(--txt-tertiary)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -185,6 +186,7 @@ export const AddEditSparePartModal: React.FC<AddEditSparePartModalProps> = ({
   const [specifications, setSpecifications] = useState('');
   const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
   const [imageError, setImageError] = useState('');
+  useSitesRefresh();
 
   const [sparePartCategories, setSparePartCategories] = useState<string[]>(getSparePartCategories());
   const [productEnergyCategories, setProductEnergyCategories] = useState<string[]>(getProductEnergyCategories());
@@ -302,9 +304,9 @@ export const AddEditSparePartModal: React.FC<AddEditSparePartModalProps> = ({
             position: 'absolute',
             top: '1.25rem',
             right: '1.25rem',
-            background: 'rgba(255, 255, 255, 0.05)',
+            background: 'var(--chip-bg)',
             border: 'none',
-            color: '#94A3B8',
+            color: 'var(--txt-tertiary)',
             borderRadius: '50%',
             width: '32px',
             height: '32px',
@@ -334,10 +336,10 @@ export const AddEditSparePartModal: React.FC<AddEditSparePartModalProps> = ({
             {itemToEdit ? <Save size={24} /> : <PlusCircle size={24} />}
           </div>
           <div style={{ minWidth: 0 }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#FFFFFF' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--txt-primary)' }}>
               {itemToEdit ? 'Edit Data Spare Part' : 'Tambah Spare Part Baru'}
             </h3>
-            <div style={{ fontSize: '0.8rem', color: '#64748B' }}>Katalog Inventaris Energi Bersih Reethau</div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--txt-muted)' }}>Katalog Inventaris Energi Bersih Reethau</div>
           </div>
         </div>
 
@@ -359,8 +361,8 @@ export const AddEditSparePartModal: React.FC<AddEditSparePartModalProps> = ({
                   borderRadius: '12px',
                   overflow: 'hidden',
                   flexShrink: 0,
-                  background: 'rgba(10, 15, 29, 0.8)',
-                  border: '1px dashed rgba(255, 255, 255, 0.15)',
+                  background: 'var(--bg-root)',
+                  border: '1px dashed var(--border-subtle)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -402,9 +404,9 @@ export const AddEditSparePartModal: React.FC<AddEditSparePartModalProps> = ({
                         if (fileInputRef.current) fileInputRef.current.value = '';
                       }}
                       style={{
-                        background: 'rgba(255, 255, 255, 0.05)',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        color: '#94A3B8',
+                        background: 'var(--chip-bg)',
+                        border: '1px solid var(--border-subtle)',
+                        color: 'var(--txt-tertiary)',
                         borderRadius: '8px',
                         padding: '0.5rem 0.85rem',
                         fontSize: '0.8rem',
@@ -416,7 +418,7 @@ export const AddEditSparePartModal: React.FC<AddEditSparePartModalProps> = ({
                     </button>
                   )}
                 </div>
-                <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
+                <div style={{ fontSize: '0.72rem', color: 'var(--txt-muted)' }}>
                   Format JPG, PNG, atau WebP. Maksimal 3MB.
                 </div>
                 {imageError && <div style={{ fontSize: '0.75rem', color: '#F87171' }}>{imageError}</div>}
@@ -433,8 +435,8 @@ export const AddEditSparePartModal: React.FC<AddEditSparePartModalProps> = ({
               onChange={(e) => setSku(e.target.value)}
               style={{
                 width: '100%',
-                background: 'rgba(10, 15, 29, 0.8)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                background: 'var(--bg-root)',
+                border: '1px solid var(--border-subtle)',
                 borderRadius: '8px',
                 padding: '0.65rem 0.85rem',
                 color: '#00D084',
@@ -452,10 +454,9 @@ export const AddEditSparePartModal: React.FC<AddEditSparePartModalProps> = ({
               onChange={(e) => setSite(e.target.value as SiteLocation)}
               style={selectStyle}
             >
-              <option value="bekasi">📍 Site Bekasi (Mother Station)</option>
-              <option value="indramayu">📍 Site Indramayu (Daughter Station)</option>
-              <option value="blora">📍 Site Blora (Wellhead)</option>
-              <option value="setu">📍 Site Setu (Compressor Station)</option>
+              {getSites().map((s) => (
+                <option key={s.key} value={s.key}>📍 Site {s.label} ({s.subtitle})</option>
+              ))}
             </select>
           </div>
 
@@ -469,11 +470,11 @@ export const AddEditSparePartModal: React.FC<AddEditSparePartModalProps> = ({
               onChange={(e) => setName(e.target.value)}
               style={{
                 width: '100%',
-                background: 'rgba(10, 15, 29, 0.8)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                background: 'var(--bg-root)',
+                border: '1px solid var(--border-subtle)',
                 borderRadius: '8px',
                 padding: '0.65rem 0.85rem',
-                color: '#FFFFFF',
+                color: 'var(--txt-primary)',
                 fontWeight: 600,
                 outline: 'none',
               }}
@@ -511,11 +512,11 @@ export const AddEditSparePartModal: React.FC<AddEditSparePartModalProps> = ({
               onChange={(e) => setStock(parseInt(e.target.value) || 0)}
               style={{
                 width: '100%',
-                background: 'rgba(10, 15, 29, 0.8)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                background: 'var(--bg-root)',
+                border: '1px solid var(--border-subtle)',
                 borderRadius: '8px',
                 padding: '0.65rem 0.85rem',
-                color: '#FFFFFF',
+                color: 'var(--txt-primary)',
                 fontWeight: 700,
                 outline: 'none',
               }}
@@ -531,11 +532,11 @@ export const AddEditSparePartModal: React.FC<AddEditSparePartModalProps> = ({
               onChange={(e) => setMinStock(parseInt(e.target.value) || 1)}
               style={{
                 width: '100%',
-                background: 'rgba(10, 15, 29, 0.8)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                background: 'var(--bg-root)',
+                border: '1px solid var(--border-subtle)',
                 borderRadius: '8px',
                 padding: '0.65rem 0.85rem',
-                color: '#FFFFFF',
+                color: 'var(--txt-primary)',
                 fontWeight: 700,
                 outline: 'none',
               }}
@@ -551,11 +552,11 @@ export const AddEditSparePartModal: React.FC<AddEditSparePartModalProps> = ({
               onChange={(e) => setUnit(e.target.value)}
               style={{
                 width: '100%',
-                background: 'rgba(10, 15, 29, 0.8)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                background: 'var(--bg-root)',
+                border: '1px solid var(--border-subtle)',
                 borderRadius: '8px',
                 padding: '0.65rem 0.85rem',
-                color: '#FFFFFF',
+                color: 'var(--txt-primary)',
                 outline: 'none',
               }}
             />
@@ -570,11 +571,11 @@ export const AddEditSparePartModal: React.FC<AddEditSparePartModalProps> = ({
               onChange={(e) => setPriceEstimate(parseInt(e.target.value) || 0)}
               style={{
                 width: '100%',
-                background: 'rgba(10, 15, 29, 0.8)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                background: 'var(--bg-root)',
+                border: '1px solid var(--border-subtle)',
                 borderRadius: '8px',
                 padding: '0.65rem 0.85rem',
-                color: '#FFFFFF',
+                color: 'var(--txt-primary)',
                 fontWeight: 700,
                 outline: 'none',
               }}
@@ -590,11 +591,11 @@ export const AddEditSparePartModal: React.FC<AddEditSparePartModalProps> = ({
               onChange={(e) => setSpecifications(e.target.value)}
               style={{
                 width: '100%',
-                background: 'rgba(10, 15, 29, 0.8)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
+                background: 'var(--bg-root)',
+                border: '1px solid var(--border-subtle)',
                 borderRadius: '8px',
                 padding: '0.65rem 0.85rem',
-                color: '#FFFFFF',
+                color: 'var(--txt-primary)',
                 outline: 'none',
                 resize: 'none',
               }}

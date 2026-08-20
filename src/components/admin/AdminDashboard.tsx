@@ -18,14 +18,17 @@ import {
   Moon,
   AlertOctagon,
   ArrowRight,
+  ChevronDown,
 } from 'lucide-react';
-import type { AuthState, SparePart, SiteFilter, ActivityLog, SiteLocation } from '../../types';
-import { INITIAL_SPARE_PARTS, INITIAL_LOGS } from '../../data/mockData';
+import type { AuthState, SparePart, SiteFilter, ActivityLog, SiteLocation, AppUser } from '../../types';
+import { INITIAL_SPARE_PARTS, INITIAL_LOGS, INITIAL_USERS } from '../../data/mockData';
 import { getSparePartCategories } from '../../data/categoryStore';
+import { getSites, useSitesRefresh } from '../../data/siteStore';
 import { SiteSelector } from './SiteSelector';
 import { SparePartTable } from './SparePartTable';
 import { TransferModal } from './TransferModal';
 import { AddEditSparePartModal } from './AddEditSparePartModal';
+import { UserFormModal } from './UserFormModal';
 import { AdminAnalytics } from './AdminAnalytics';
 import { Sidebar, type AdminView } from './Sidebar';
 import {
@@ -38,6 +41,7 @@ import {
   ProductLinesView,
   TeamView,
   GalleryView,
+  UserManagementView,
   ACTION_META,
   parseLogDate,
   timeAgo,
@@ -48,6 +52,7 @@ interface AdminDashboardProps {
   auth: AuthState;
   onLogout: () => void;
   onGoToPublicSite: () => void;
+  onUpdateAuth: (patch: Partial<AuthState>) => void;
 }
 
 // Bump this whenever INITIAL_SPARE_PARTS / INITIAL_LOGS changes in mockData.ts,
@@ -69,7 +74,7 @@ const nowTimestamp = (): string => {
 const THEME_KEY = 'reethau_admin_theme';
 const NOTIF_READ_KEY = 'reethau_notif_last_read';
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({ auth, onLogout, onGoToPublicSite }) => {
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ auth, onLogout, onGoToPublicSite, onUpdateAuth }) => {
   const [activeView, setActiveView] = useState<AdminView>('dashboard');
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
@@ -104,6 +109,85 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ auth, onLogout, 
     const saved = localStorage.getItem('reethau_activity_logs');
     return saved ? JSON.parse(saved) : INITIAL_LOGS;
   });
+
+  // User accounts persist independently of the spare-part/log DATA_VERSION
+  // cache-buster above, since wiping real accounts on an unrelated content
+  // update would be surprising.
+  const [users, setUsers] = useState<AppUser[]>(() => {
+    const saved = localStorage.getItem('reethau_users');
+    return saved ? JSON.parse(saved) : INITIAL_USERS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('reethau_users', JSON.stringify(users));
+  }, [users]);
+
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const currentUser = users.find((u) => u.id === auth.userId) ?? null;
+  // Bumped whenever a site is added/edited/deleted (see BranchesView), so the
+  // dashboard's site filter, siteCounts, and every "pick a site" dropdown
+  // re-render with the current list instead of a stale snapshot.
+  const [sitesVersion, setSitesVersion] = useState(0);
+  // Extra safety net alongside the manual sitesVersion bump above: also
+  // react to the global "sites changed" event so nothing ever goes stale.
+  useSitesRefresh();
+  // Ad-hoc sessions (login email didn't match a saved account) still get a
+  // profile-editable view, pre-filled from the live session state.
+  const profileUser: AppUser | null =
+    currentUser ??
+    (auth.isAuthenticated
+      ? {
+          id: '',
+          name: auth.username,
+          email: '',
+          position: auth.position || auth.role,
+          role: auth.role,
+          assignedSite: auth.assignedSite,
+          avatarUrl: auth.avatarUrl,
+          createdAt: '',
+        }
+      : null);
+  const isSuperAdmin = auth.role === 'Super Admin';
+
+  const handleAddUser = (data: Partial<AppUser>) => {
+    if (data.email && users.some((u) => u.email.toLowerCase() === data.email!.toLowerCase())) {
+      alert('Email tersebut sudah terdaftar.');
+      return;
+    }
+    const newUser: AppUser = {
+      id: `user-${Date.now()}`,
+      name: data.name || 'Tanpa Nama',
+      email: data.email || '',
+      position: data.position || data.role || 'Anggota Tim',
+      role: data.role || 'Site Manager',
+      assignedSite: data.assignedSite || 'global',
+      avatarUrl: data.avatarUrl,
+      createdAt: new Date().toISOString().split('T')[0],
+    };
+    setUsers((prev) => [...prev, newUser]);
+    showToast(`Akun ${newUser.name} berhasil ditambahkan.`);
+  };
+
+  const handleUpdateUser = (id: string, data: Partial<AppUser>) => {
+    setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, ...data } : u)));
+    // If the edited account is the currently logged-in session, refresh the
+    // header/session immediately instead of waiting for the next login.
+    if (id === auth.userId) {
+      onUpdateAuth({
+        username: data.name ?? auth.username,
+        avatarUrl: data.avatarUrl ?? auth.avatarUrl,
+        position: data.position ?? auth.position,
+        role: data.role ?? auth.role,
+        assignedSite: data.assignedSite ?? auth.assignedSite,
+      });
+    }
+    showToast('Profil berhasil diperbarui.');
+  };
+
+  const handleDeleteUser = (id: string) => {
+    setUsers((prev) => prev.filter((u) => u.id !== id));
+    showToast('Akun pengguna dihapus.');
+  };
 
   useEffect(() => {
     localStorage.setItem('reethau_data_version', DATA_VERSION);
@@ -175,13 +259,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ auth, onLogout, 
     return matchesSite && matchesCategory && matchesSearch;
   });
 
-  const siteCounts = {
-    global: spareParts.length,
-    bekasi: spareParts.filter((p) => p.site === 'bekasi').length,
-    indramayu: spareParts.filter((p) => p.site === 'indramayu').length,
-    blora: spareParts.filter((p) => p.site === 'blora').length,
-    setu: spareParts.filter((p) => p.site === 'setu').length,
-  };
+  const siteCounts: Record<string, number> = { global: spareParts.length };
+  getSites().forEach((s) => {
+    siteCounts[s.key] = spareParts.filter((p) => p.site === s.key).length;
+  });
 
   const totalItems = filteredSpareParts.reduce((acc, curr) => acc + curr.stock, 0);
   const lowStockCount = filteredSpareParts.filter((p) => p.stock <= p.minStock).length;
@@ -341,7 +422,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ auth, onLogout, 
       )}
 
       <div className="admin-layout">
-        <Sidebar active={activeView} onNavigate={setActiveView} isOpen={isMobileNavOpen} onClose={() => setIsMobileNavOpen(false)} />
+        <Sidebar
+          active={activeView}
+          onNavigate={setActiveView}
+          isOpen={isMobileNavOpen}
+          onClose={() => setIsMobileNavOpen(false)}
+          showUserManagement={isSuperAdmin}
+          galleryLabel={isSuperAdmin ? 'Galeri Aset' : `Galeri Aset ${SITE_LABEL[auth.assignedSite] ?? ''}`}
+        />
 
         <div className="admin-content">
       {/* Admin Header Topbar */}
@@ -358,7 +446,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ auth, onLogout, 
             <img
               src="/assets/images/logo-white.webp"
               alt="Reethau Clean Energy Logo"
-              className="admin-brand-logo-img"
+              className="admin-brand-logo-img brand-logo-dark"
+            />
+            <img
+              src="/assets/images/logo-black.webp"
+              alt="Reethau Clean Energy Logo"
+              className="admin-brand-logo-img brand-logo-light"
             />
             <div style={{ minWidth: 0 }}>
               <div className="admin-brand-title">
@@ -367,9 +460,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ auth, onLogout, 
                   v2.4 Live
                 </span>
               </div>
-              <div className="admin-brand-sub">
-                User: <strong style={{ color: 'var(--txt-tertiary)' }}>{auth.username}</strong> ({auth.role})
-              </div>
+              <button
+                type="button"
+                onClick={() => setIsProfileOpen(true)}
+                title="Buka Profil Saya"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'none', border: 'none',
+                  padding: 0, marginTop: '0.15rem', cursor: 'pointer', maxWidth: '100%',
+                }}
+              >
+                {auth.avatarUrl ? (
+                  <img src={auth.avatarUrl} alt={auth.username} style={{ width: '18px', height: '18px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                ) : (
+                  <span style={{
+                    width: '18px', height: '18px', borderRadius: '50%', background: 'rgba(0,208,132,0.18)', color: '#00D084',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.55rem', fontWeight: 800, flexShrink: 0,
+                  }}>
+                    {auth.username.charAt(0).toUpperCase()}
+                  </span>
+                )}
+                <span className="admin-brand-sub" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <strong style={{ color: 'var(--txt-tertiary)' }}>{auth.username}</strong> ({auth.position || auth.role})
+                </span>
+                <ChevronDown size={12} color="var(--txt-muted)" style={{ flexShrink: 0 }} />
+              </button>
             </div>
           </div>
 
@@ -502,7 +616,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ auth, onLogout, 
           <div style={{ fontSize: '0.9rem', color: 'var(--txt-muted)', fontWeight: 700, marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
             Pilih Tampilan Lokasi Site Operasional
           </div>
-          <SiteSelector currentSite={currentSite} onSiteChange={setCurrentSite} siteCounts={siteCounts} />
+          <SiteSelector key={sitesVersion} currentSite={currentSite} onSiteChange={setCurrentSite} siteCounts={siteCounts} />
         </div>
 
         {/* Search & Action Bar */}
@@ -523,8 +637,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ auth, onLogout, 
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={{
                   width: '100%',
-                  background: 'rgba(10, 15, 29, 0.8)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  background: 'var(--bg-root)',
+                  border: '1px solid var(--border-subtle)',
                   borderRadius: '10px',
                   padding: '0.7rem 1rem 0.7rem 2.75rem',
                   color: 'var(--txt-primary)',
@@ -603,110 +717,116 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ auth, onLogout, 
           />
         )}
         {activeView === 'audit' && <AuditView logs={logs} />}
-        {activeView === 'branches' && <BranchesView spareParts={spareParts} />}
+        {activeView === 'branches' && (
+          <BranchesView spareParts={spareParts} onSitesChanged={() => setSitesVersion((v) => v + 1)} />
+        )}
         {activeView === 'product-lines' && <ProductLinesView spareParts={spareParts} />}
         {activeView === 'team' && <TeamView logs={logs} />}
-        {activeView === 'gallery' && <GalleryView />}
+        {activeView === 'gallery' && <GalleryView auth={auth} />}
+        {activeView === 'users' && isSuperAdmin && (
+          <UserManagementView
+            users={users}
+            currentUserId={auth.userId}
+            onAddUser={handleAddUser}
+            onUpdateUser={handleUpdateUser}
+            onDeleteUser={handleDeleteUser}
+          />
+        )}
       </main>
         </div>
       </div>
 
-      {/* Notifications Panel */}
+      {/* Notifications Popover */}
       {isNotifOpen && (
         <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 95,
-            background: 'rgba(5, 8, 16, 0.6)',
-            display: 'flex',
-            justifyContent: 'flex-end',
-          }}
+          style={{ position: 'fixed', inset: 0, zIndex: 95, background: 'transparent' }}
           onClick={(e) => { if (e.target === e.currentTarget) setIsNotifOpen(false); }}
         >
-          <div className="notif-panel">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--txt-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Bell size={19} color="#00D084" />
+          <div className="notif-popover">
+            <div className="notif-popover-header">
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--txt-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Bell size={18} color="#00D084" />
                 Notifikasi
               </h3>
-              <button onClick={() => setIsNotifOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--txt-tertiary)', cursor: 'pointer' }}>
-                <X size={20} />
+              <button onClick={() => setIsNotifOpen(false)} className="notif-popover-close">
+                <X size={16} />
               </button>
             </div>
 
-            {/* Needs attention */}
-            <div className="notif-section-title">
-              <AlertOctagon size={13} />
-              Butuh Perhatian ({attentionItems.length})
-            </div>
-            {attentionItems.length === 0 ? (
-              <div className="notif-empty">Semua spare part dalam kondisi baik. 🎉</div>
-            ) : (
-              <>
-                {attentionItems.slice(0, 4).map((p) => (
-                  <div key={p.id} className="notif-item">
-                    <div style={{
-                      width: '34px', height: '34px', borderRadius: '9px', flexShrink: 0,
-                      background: p.status === 'Critical' ? 'rgba(248,113,113,0.15)' : 'rgba(167,139,250,0.15)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      {p.status === 'Critical' ? <AlertOctagon size={16} color="#F87171" /> : <Wrench size={16} color="#A78BFA" />}
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ color: 'var(--txt-primary)', fontWeight: 700, fontSize: '0.85rem' }}>{p.name}</div>
-                      <div style={{ color: 'var(--txt-muted)', fontSize: '0.76rem' }}>
-                        Site {SITE_LABEL[p.site]} &middot; {p.status}
+            <div className="notif-popover-body">
+              {/* Needs attention */}
+              <div className="notif-section-title">
+                <AlertOctagon size={13} />
+                Butuh Perhatian ({attentionItems.length})
+              </div>
+              {attentionItems.length === 0 ? (
+                <div className="notif-empty">Semua spare part dalam kondisi baik. 🎉</div>
+              ) : (
+                <>
+                  {attentionItems.slice(0, 4).map((p) => (
+                    <div key={p.id} className="notif-item">
+                      <div style={{
+                        width: '34px', height: '34px', borderRadius: '9px', flexShrink: 0,
+                        background: p.status === 'Critical' ? 'rgba(248,113,113,0.15)' : 'rgba(167,139,250,0.15)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        {p.status === 'Critical' ? <AlertOctagon size={16} color="#F87171" /> : <Wrench size={16} color="#A78BFA" />}
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ color: 'var(--txt-primary)', fontWeight: 700, fontSize: '0.85rem' }}>{p.name}</div>
+                        <div style={{ color: 'var(--txt-muted)', fontSize: '0.76rem' }}>
+                          Site {SITE_LABEL[p.site]} &middot; {p.status}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  className="btn-chip"
-                  onClick={() => { setActiveView('maintenance'); setIsNotifOpen(false); }}
-                  style={{ width: '100%', justifyContent: 'center', marginTop: '0.25rem' }}
-                >
-                  Lihat semua di Maintenance
-                  <ArrowRight size={13} />
-                </button>
-              </>
-            )}
+                  ))}
+                  <button
+                    type="button"
+                    className="btn-chip"
+                    onClick={() => { setActiveView('maintenance'); setIsNotifOpen(false); }}
+                    style={{ width: '100%', justifyContent: 'center', marginTop: '0.25rem' }}
+                  >
+                    Lihat semua di Maintenance
+                    <ArrowRight size={13} />
+                  </button>
+                </>
+              )}
 
-            {/* Recent activity */}
-            <div className="notif-section-title">
-              <Activity size={13} />
-              Aktivitas Terbaru
+              {/* Recent activity */}
+              <div className="notif-section-title">
+                <Activity size={13} />
+                Aktivitas Terbaru
+              </div>
+              {sortedLogs.length === 0 ? (
+                <div className="notif-empty">Belum ada aktivitas.</div>
+              ) : (
+                sortedLogs.slice(0, 8).map((l) => {
+                  const meta = ACTION_META[l.action];
+                  const Icon = meta.icon;
+                  const isNew = (parseLogDate(l.timestamp)?.getTime() ?? 0) > previousReadAtRef.current;
+                  return (
+                    <div key={l.id} className={`notif-item${isNew ? ' is-new' : ''}`}>
+                      <div style={{ width: '34px', height: '34px', borderRadius: '9px', flexShrink: 0, background: meta.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Icon size={16} color={meta.color} />
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ color: 'var(--txt-primary)', fontSize: '0.83rem', lineHeight: 1.4 }}>{l.description}</div>
+                        <div style={{ color: 'var(--txt-muted)', fontSize: '0.74rem', marginTop: '0.2rem' }}>{timeAgo(l.timestamp)}</div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+              <button
+                type="button"
+                className="btn-chip"
+                onClick={() => { setActiveView('audit'); setIsNotifOpen(false); }}
+                style={{ width: '100%', justifyContent: 'center', marginTop: '0.5rem' }}
+              >
+                Lihat Semua Log Aktivitas
+                <ArrowRight size={13} />
+              </button>
             </div>
-            {sortedLogs.length === 0 ? (
-              <div className="notif-empty">Belum ada aktivitas.</div>
-            ) : (
-              sortedLogs.slice(0, 8).map((l) => {
-                const meta = ACTION_META[l.action];
-                const Icon = meta.icon;
-                const isNew = (parseLogDate(l.timestamp)?.getTime() ?? 0) > previousReadAtRef.current;
-                return (
-                  <div key={l.id} className={`notif-item${isNew ? ' is-new' : ''}`}>
-                    <div style={{ width: '34px', height: '34px', borderRadius: '9px', flexShrink: 0, background: meta.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Icon size={16} color={meta.color} />
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ color: 'var(--txt-primary)', fontSize: '0.83rem', lineHeight: 1.4 }}>{l.description}</div>
-                      <div style={{ color: 'var(--txt-muted)', fontSize: '0.74rem', marginTop: '0.2rem' }}>{timeAgo(l.timestamp)}</div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-            <button
-              type="button"
-              className="btn-chip"
-              onClick={() => { setActiveView('audit'); setIsNotifOpen(false); }}
-              style={{ width: '100%', justifyContent: 'center', marginTop: '0.5rem' }}
-            >
-              Lihat Semua Log Aktivitas
-              <ArrowRight size={13} />
-            </button>
           </div>
         </div>
       )}
@@ -750,8 +870,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ auth, onLogout, 
                 <div
                   key={log.id}
                   style={{
-                    background: 'rgba(10, 15, 29, 0.8)',
-                    border: '1px solid rgba(255, 255, 255, 0.05)',
+                    background: 'var(--bg-root)',
+                    border: '1px solid var(--border-subtle)',
                     borderRadius: '12px',
                     padding: '1rem',
                   }}
@@ -782,6 +902,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ auth, onLogout, 
         item={transferringItem}
         onClose={() => setIsTransferOpen(false)}
         onConfirmTransfer={handleConfirmTransfer}
+      />
+
+      <UserFormModal
+        isOpen={isProfileOpen}
+        mode="self"
+        userToEdit={profileUser}
+        onClose={() => setIsProfileOpen(false)}
+        onSave={(data) => {
+          if (currentUser) {
+            handleUpdateUser(currentUser.id, data);
+          } else {
+            // Ad-hoc session (email didn't match a saved account) — just
+            // update the live header/session without a users-list entry.
+            onUpdateAuth({ username: data.name, avatarUrl: data.avatarUrl, position: data.position });
+            showToast('Profil berhasil diperbarui.');
+          }
+          setIsProfileOpen(false);
+        }}
       />
     </div>
   );

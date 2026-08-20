@@ -35,60 +35,36 @@ import {
   PlusCircle,
   Trash2,
   Clock,
+  Crown,
+  Activity,
+  Sparkles,
+  UserCog,
+  Pencil,
+  Mail,
+  ShieldCheck,
+  Flame,
+  Droplet,
+  Leaf,
+  ImagePlus,
+  Building2,
 } from 'lucide-react';
-import type { SparePart, ActivityLog, SiteLocation } from '../../types';
+import type { SparePart, ActivityLog, SiteLocation, AppUser, UserRole, GalleryItem, AuthState } from '../../types';
 import { getCategoryVisual } from '../../data/categoryVisuals';
+import { getSites, addSite, updateSite, deleteSite, isDefaultSite, getSiteMeta as getSiteMetaSafe, type SiteMeta } from '../../data/siteStore';
+import { SITE_LABEL, SITE_SUB, SITE_COLOR } from '../../data/siteStore';
+import {
+  getGallery,
+  addGalleryItem,
+  deleteGalleryItem,
+  isDefaultGalleryItem,
+  useGalleryRefresh,
+} from '../../data/galleryStore';
 import { QRCodeModal } from './QRCodeModal';
 import { BarcodeScannerModal } from './BarcodeScannerModal';
+import { UserFormModal } from './UserFormModal';
 import { TransferModal } from './TransferModal';
 import type { AdminView } from './Sidebar';
-
-export const SETU_GALLERY: { src: string; caption: string }[] = [
-  { src: '/assets/images/setu/setu-01.webp', caption: 'Sambungan & Fitting Perpipaan Gas' },
-  { src: '/assets/images/setu/setu-02.webp', caption: 'Jalur Distribusi Pipa Compressor Station' },
-  { src: '/assets/images/setu/setu-03.webp', caption: 'Unit Meter Turbin Gas' },
-  { src: '/assets/images/setu/setu-04.webp', caption: 'Panel Kontrol Elektrikal Site' },
-  { src: '/assets/images/setu/setu-05.webp', caption: 'Regulator & Valve Tekanan Tinggi' },
-  { src: '/assets/images/setu/setu-06.webp', caption: 'Rangkaian Skid Instrumentasi' },
-  { src: '/assets/images/setu/setu-07.webp', caption: 'Plat Spesifikasi Peralatan' },
-  { src: '/assets/images/setu/setu-08.webp', caption: 'Area Skid Compressor Terbungkus' },
-  { src: '/assets/images/setu/setu-09.webp', caption: 'Gardu & Jaringan Listrik Site' },
-  { src: '/assets/images/setu/setu-10.webp', caption: 'Panel Distribusi Daya Site Setu' },
-  { src: '/assets/images/setu/setu-11.webp', caption: 'APAR & Perlengkapan Keselamatan' },
-  { src: '/assets/images/setu/setu-12.webp', caption: 'Instalasi Skid & Rak Peralatan' },
-  { src: '/assets/images/setu/setu-13.webp', caption: 'Unit AC Ruang Fleet' },
-  { src: '/assets/images/setu/setu-14.webp', caption: 'Unit AC Ruang Fleet (Tampak Lain)' },
-  { src: '/assets/images/setu/setu-15.webp', caption: 'Label Barcode Aset Terdaftar' },
-  { src: '/assets/images/setu/setu-16.webp', caption: 'Label Barcode Aset pada Furnitur Site' },
-];
-
-export const SITE_LABEL: Record<SiteLocation, string> = {
-  bekasi: 'Bekasi',
-  indramayu: 'Indramayu',
-  blora: 'Blora',
-  setu: 'Setu',
-};
-
-const SITE_SUB: Record<SiteLocation, string> = {
-  bekasi: 'Mother Station & Workshop',
-  indramayu: 'Daughter Station & Depot',
-  blora: 'Wellhead & Processing Plant',
-  setu: 'Compressor Station & Fleet Room',
-};
-
-const SITE_IMAGE: Record<SiteLocation, string> = {
-  bekasi: '/assets/images/cng-cylinder.webp',
-  indramayu: '/assets/images/distribution-truck.webp',
-  blora: '/assets/images/cng-pipe.webp',
-  setu: '/assets/images/setu/setu-02.webp',
-};
-
-const SITE_COLOR: Record<SiteLocation, string> = {
-  bekasi: '#00D084',
-  indramayu: '#60A5FA',
-  blora: '#FBBF24',
-  setu: '#C084FC',
-};
+export { SITE_LABEL };
 
 function formatIDR(val: number): string {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
@@ -195,7 +171,7 @@ export const GlobalSearchView: React.FC<{
       <div className="glass-panel" style={{ borderRadius: '16px', padding: '1rem 1.25rem', marginBottom: query || scanNotice ? '1rem' : '1.5rem' }}>
         <div className="gsearch-input-row">
           <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
-            <Search size={18} color="#64748B" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
+            <Search size={18} color="var(--txt-muted)" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
             <input
               autoFocus
               type="text"
@@ -218,8 +194,8 @@ export const GlobalSearchView: React.FC<{
               placeholder="Ketik, atau scan barcode / QR spare part..."
               style={{
                 width: '100%',
-                background: 'rgba(10, 15, 29, 0.8)',
-                border: '1px solid rgba(255,255,255,0.1)',
+                background: 'var(--bg-root)',
+                border: '1px solid var(--border-subtle)',
                 borderRadius: '10px',
                 padding: '0.85rem 1rem 0.85rem 2.75rem',
                 color: 'var(--txt-primary)',
@@ -408,28 +384,39 @@ export const CategoriesView: React.FC<{ spareParts: SparePart[] }> = ({ sparePar
         {grouped.map(([name, data]) => {
           const visual = getCategoryVisual(name);
           const Icon = visual.icon || Package;
+          const accent = visual?.color || 'var(--txt-tertiary)';
           return (
-            <div key={name} className="glass-panel" style={{ borderRadius: '16px', padding: '1.25rem' }}>
+            <div
+              key={name}
+              className="glass-panel glass-panel-hover"
+              style={{
+                borderRadius: '16px',
+                padding: '1.25rem',
+                borderTop: `3px solid ${accent}`,
+                background: `linear-gradient(160deg, ${accent}0D 0%, transparent 55%), var(--bg-card)`,
+              }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
                 <div
                   style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '10px',
-                    background: visual?.bg || 'rgba(255,255,255,0.06)',
+                    width: '46px',
+                    height: '46px',
+                    borderRadius: '12px',
+                    background: visual?.bg || 'var(--chip-bg)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    flexShrink: 0,
                   }}
                 >
-                  <Icon size={20} color={visual?.color || 'var(--txt-tertiary)'} />
+                  <Icon size={22} color={accent} strokeWidth={1.9} />
                 </div>
-                <div style={{ fontWeight: 700, color: 'var(--txt-primary)', fontSize: '0.9rem' }}>{name}</div>
+                <div style={{ fontWeight: 700, color: 'var(--txt-primary)', fontSize: '0.92rem' }}>{name}</div>
               </div>
               <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--txt-primary)' }}>
                 {data.stock} <span style={{ fontSize: '0.8rem', color: 'var(--txt-muted)', fontWeight: 500 }}>unit / {data.count} jenis</span>
               </div>
-              <div style={{ fontSize: '0.78rem', color: '#00D084', marginTop: '0.4rem' }}>{formatIDR(data.value)}</div>
+              <div style={{ fontSize: '0.78rem', color: '#00D084', marginTop: '0.4rem', fontWeight: 600 }}>{formatIDR(data.value)}</div>
             </div>
           );
         })}
@@ -490,7 +477,7 @@ const PartPickerModal: React.FC<{
           onClick={onClose}
           style={{
             position: 'absolute', top: '1.25rem', right: '1.25rem',
-            background: 'rgba(255, 255, 255, 0.05)', border: 'none', color: 'var(--txt-tertiary)',
+            background: 'var(--chip-bg)', border: 'none', color: 'var(--txt-tertiary)',
             borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
@@ -659,7 +646,7 @@ export const AssignmentsView: React.FC<{
     },
   ];
 
-  const siteOptions: SiteLocation[] = ['bekasi', 'indramayu', 'blora', 'setu'];
+  const siteOptions: SiteLocation[] = getSites().map((s) => s.key);
 
   return (
     <div>
@@ -871,7 +858,7 @@ const FlagMaintenanceModal: React.FC<{
           onClick={handleClose}
           style={{
             position: 'absolute', top: '1.25rem', right: '1.25rem',
-            background: 'rgba(255, 255, 255, 0.05)', border: 'none', color: 'var(--txt-tertiary)',
+            background: 'var(--chip-bg)', border: 'none', color: 'var(--txt-tertiary)',
             borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
@@ -944,7 +931,7 @@ const FlagMaintenanceModal: React.FC<{
           </>
         ) : (
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
-            <div style={{ background: 'rgba(10, 15, 29, 0.8)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '12px', padding: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ background: 'var(--bg-root)', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               {selected.imageUrl ? (
                 <img src={selected.imageUrl} alt={selected.name} style={{ width: '48px', height: '48px', borderRadius: '10px', objectFit: 'cover', flexShrink: 0, border: '1px solid rgba(255,255,255,0.1)' }} />
               ) : (
@@ -1039,7 +1026,7 @@ export const MaintenanceView: React.FC<{
     setSiteFilter('all');
   };
 
-  const siteOptions: SiteLocation[] = ['bekasi', 'indramayu', 'blora', 'setu'];
+  const siteOptions: SiteLocation[] = getSites().map((s) => s.key);
 
   return (
     <div>
@@ -1451,34 +1438,208 @@ export const AuditView: React.FC<{ logs: ActivityLog[] }> = ({ logs }) => {
 };
 
 /* ────────────────────────────── Branches (Sites) ────────────────────────────── */
-export const BranchesView: React.FC<{ spareParts: SparePart[] }> = ({ spareParts }) => {
-  const sites: SiteLocation[] = ['bekasi', 'indramayu', 'blora', 'setu'];
+/** Search + pick an existing spare part's site is handled elsewhere; this
+ * modal is for creating/editing an operational Site itself. */
+const SiteFormModal: React.FC<{
+  isOpen: boolean;
+  siteToEdit: SiteMeta | null;
+  onClose: () => void;
+  onSave: (data: { label: string; subtitle: string; color: string; imageUrl?: string }) => void;
+}> = ({ isOpen, siteToEdit, onClose, onSave }) => {
+  const [label, setLabel] = useState('');
+  const [subtitle, setSubtitle] = useState('');
+  const [color, setColor] = useState('#00D084');
+  const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
+  const [imageError, setImageError] = useState('');
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const COLOR_CHOICES = ['#00D084', '#60A5FA', '#FBBF24', '#C084FC', '#F472B6', '#38BDF8', '#A3E635', '#F87171'];
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setLabel(siteToEdit?.label ?? '');
+      setSubtitle(siteToEdit?.subtitle ?? '');
+      setColor(siteToEdit?.color ?? COLOR_CHOICES[0]);
+      setImageUrl(siteToEdit?.imageUrl);
+      setImageError('');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, siteToEdit]);
+
+  if (!isOpen) return null;
+
+  const handleImageSelect = (file: File | undefined) => {
+    setImageError('');
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setImageError('File harus berupa gambar.');
+      return;
+    }
+    if (file.size > 3 * 1024 * 1024) {
+      setImageError('Ukuran foto maksimal 3MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setImageUrl(reader.result as string);
+    reader.onerror = () => setImageError('Gagal membaca file gambar.');
+    reader.readAsDataURL(file);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!label.trim()) return;
+    onSave({ label: label.trim(), subtitle: subtitle.trim(), color, imageUrl });
+  };
+
+  return (
+    <div className="admin-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="glass-panel admin-modal-panel" style={{ maxWidth: '460px' }}>
+        <button onClick={onClose} className="admin-modal-close-btn">
+          <X size={18} />
+        </button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', paddingRight: '2.5rem' }}>
+          <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(0,208,132,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <MapPin size={22} color="#00D084" />
+          </div>
+          <div>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--txt-primary)' }}>
+              {siteToEdit ? 'Edit Site' : 'Tambah Site Operasional'}
+            </h3>
+            <div style={{ fontSize: '0.8rem', color: 'var(--txt-muted)' }}>
+              {siteToEdit ? 'Perbarui detail site ini' : 'Site baru langsung tersedia di semua form & filter'}
+            </div>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+          <div style={{ position: 'relative', borderRadius: '14px', overflow: 'hidden', height: '110px', background: 'var(--bg-root)' }}>
+            {imageUrl && <img src={imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+            <div style={{ position: 'absolute', inset: 0, background: imageUrl ? 'rgba(5,8,16,0.35)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <input ref={fileInputRef} type="file" accept="image/*" onChange={(e) => handleImageSelect(e.target.files?.[0])} style={{ display: 'none' }} />
+              <button type="button" onClick={() => fileInputRef.current?.click()} className="btn-chip" style={{ fontSize: '0.78rem' }}>
+                <Images size={14} />
+                {imageUrl ? 'Ganti Foto' : 'Unggah Foto Site'}
+              </button>
+            </div>
+          </div>
+          {imageError && <div style={{ fontSize: '0.72rem', color: '#F87171', marginTop: '-0.6rem' }}>{imageError}</div>}
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--txt-muted)', marginBottom: '0.4rem', fontWeight: 600 }}>Nama Site</label>
+            <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="mis. Cikarang" style={{ ...emptyInputStyle, width: '100%' }} autoFocus />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--txt-muted)', marginBottom: '0.4rem', fontWeight: 600 }}>Deskripsi Singkat</label>
+            <input value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="mis. Regional Distribution Hub" style={{ ...emptyInputStyle, width: '100%' }} />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--txt-muted)', marginBottom: '0.5rem', fontWeight: 600 }}>Warna Aksen</label>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              {COLOR_CHOICES.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setColor(c)}
+                  style={{
+                    width: '30px', height: '30px', borderRadius: '50%', background: c, cursor: 'pointer',
+                    border: color === c ? '3px solid var(--bg-surface)' : '2px solid transparent',
+                    boxShadow: color === c ? `0 0 0 2px ${c}` : 'none',
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+
+          <button type="submit" className="btn-primary" style={{ justifyContent: 'center', marginTop: '0.25rem' }}>
+            <Plus size={16} />
+            {siteToEdit ? 'Simpan Perubahan' : 'Tambah Site'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export const BranchesView: React.FC<{ spareParts: SparePart[]; onSitesChanged?: () => void }> = ({ spareParts, onSitesChanged }) => {
+  const [refreshTick, setRefreshTick] = useState(0);
+  const sites = useMemo(() => getSites(), [refreshTick]);
   const [qrSite, setQrSite] = useState<SiteLocation | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingSite, setEditingSite] = useState<SiteMeta | null>(null);
+
+  const openAdd = () => { setEditingSite(null); setIsFormOpen(true); };
+  const openEdit = (site: SiteMeta) => { setEditingSite(site); setIsFormOpen(true); };
+
+  const handleDelete = (site: SiteMeta) => {
+    const inUse = spareParts.some((p) => p.site === site.key);
+    if (inUse) {
+      alert(`Tidak bisa menghapus Site ${site.label} karena masih ada spare part terdaftar di site ini. Pindahkan atau hapus item tersebut terlebih dahulu.`);
+      return;
+    }
+    if (confirm(`Hapus Site ${site.label}? Tindakan ini tidak bisa dibatalkan.`)) {
+      deleteSite(site.key);
+      setRefreshTick((t) => t + 1);
+      onSitesChanged?.();
+    }
+  };
 
   return (
     <div>
-      <PageHeader icon={MapPin} title="Site Operasional" sub="Ringkasan inventaris di tiap lokasi Reethau — ketuk ikon QR untuk kode akses cepat site" />
+      <div className="view-toolbar-row" style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        <PageHeader icon={MapPin} title="Site Operasional" sub="Ringkasan inventaris di tiap lokasi Reethau — ketuk ikon QR untuk kode akses cepat site" />
+        <button type="button" className="btn-primary view-toolbar-btn" onClick={openAdd} style={{ marginBottom: '1.5rem' }}>
+          <Plus size={18} />
+          Tambah Site
+        </button>
+      </div>
+
       <div className="site-grid" style={{ marginBottom: '1rem' }}>
         {sites.map((site) => {
-          const items = spareParts.filter((p) => p.site === site);
+          const items = spareParts.filter((p) => p.site === site.key);
           const value = items.reduce((acc, p) => acc + p.stock * p.priceEstimate, 0);
           const lowStock = items.filter((p) => p.stock <= p.minStock).length;
           return (
-            <div key={site} className="site-card active" style={{ minHeight: '160px', cursor: 'default' }}>
-              <div className="site-card-bg" style={{ backgroundImage: `url(${SITE_IMAGE[site]})` }} />
+            <div key={site.key} className="site-card active" style={{ minHeight: '160px', cursor: 'default' }}>
+              <div className="site-card-bg" style={{ backgroundImage: `url(${site.imageUrl})` }} />
               <div className="site-card-overlay" />
-              <button
-                className="site-card-qr-btn"
-                title={`QR Code Site ${SITE_LABEL[site]}`}
-                aria-label={`Tampilkan QR Code Site ${SITE_LABEL[site]}`}
-                onClick={(e) => { e.stopPropagation(); setQrSite(site); }}
-              >
-                <QrCodeIcon size={16} />
-              </button>
+              <div style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', zIndex: 2, display: 'flex', gap: '0.4rem' }}>
+                <button
+                  className="site-card-qr-btn"
+                  style={{ position: 'static' }}
+                  title={`Edit Site ${site.label}`}
+                  aria-label={`Edit Site ${site.label}`}
+                  onClick={(e) => { e.stopPropagation(); openEdit(site); }}
+                >
+                  <Pencil size={14} />
+                </button>
+                <button
+                  className="site-card-qr-btn"
+                  style={{ position: 'static' }}
+                  title={`QR Code Site ${site.label}`}
+                  aria-label={`Tampilkan QR Code Site ${site.label}`}
+                  onClick={(e) => { e.stopPropagation(); setQrSite(site.key); }}
+                >
+                  <QrCodeIcon size={16} />
+                </button>
+                {!isDefaultSite(site.key) && (
+                  <button
+                    className="site-card-qr-btn"
+                    style={{ position: 'static' }}
+                    title={`Hapus Site ${site.label}`}
+                    aria-label={`Hapus Site ${site.label}`}
+                    onClick={(e) => { e.stopPropagation(); handleDelete(site); }}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </div>
               <div className="site-card-content" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '0.5rem' }}>
                 <div>
-                  <div className="site-card-label"><MapPin size={16} />Site {SITE_LABEL[site]}</div>
-                  <div className="site-card-sub">{SITE_SUB[site]}</div>
+                  <div className="site-card-label"><MapPin size={16} />Site {site.label}</div>
+                  <div className="site-card-sub">{site.subtitle}</div>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem', fontSize: '0.75rem', color: 'var(--txt-primary)' }}>
                   <span>{items.length} jenis part</span>
@@ -1491,51 +1652,289 @@ export const BranchesView: React.FC<{ spareParts: SparePart[] }> = ({ spareParts
         })}
       </div>
 
-      {qrSite && (
-        <QRCodeModal
-          isOpen={!!qrSite}
-          onClose={() => setQrSite(null)}
-          title={`Site ${SITE_LABEL[qrSite]}`}
-          subtitle={`REETHAU-SITE-${qrSite.toUpperCase()}`}
-          value={`https://inventory.reethau.id/site/${qrSite}`}
-          fileName={`reethau-site-${qrSite}-qr`}
-          metaLines={[
-            { label: 'Deskripsi', value: SITE_SUB[qrSite] },
-            { label: 'Jenis Part', value: `${spareParts.filter((p) => p.site === qrSite).length} terdaftar` },
-          ]}
-        />
-      )}
+      {qrSite && (() => {
+        const meta = getSiteMetaSafe(qrSite);
+        return (
+          <QRCodeModal
+            isOpen={!!qrSite}
+            onClose={() => setQrSite(null)}
+            title={`Site ${meta.label}`}
+            subtitle={`REETHAU-SITE-${qrSite.toUpperCase()}`}
+            value={`https://inventory.reethau.id/site/${qrSite}`}
+            fileName={`reethau-site-${qrSite}-qr`}
+            metaLines={[
+              { label: 'Deskripsi', value: meta.subtitle },
+              { label: 'Jenis Part', value: `${spareParts.filter((p) => p.site === qrSite).length} terdaftar` },
+            ]}
+          />
+        );
+      })()}
+
+      <SiteFormModal
+        isOpen={isFormOpen}
+        siteToEdit={editingSite}
+        onClose={() => setIsFormOpen(false)}
+        onSave={(data) => {
+          if (editingSite) {
+            updateSite(editingSite.key, data);
+          } else {
+            addSite(data);
+          }
+          setRefreshTick((t) => t + 1);
+          setIsFormOpen(false);
+          onSitesChanged?.();
+        }}
+      />
     </div>
   );
 };
 
 /* ────────────────────────────── Asset Photo Gallery (Site Setu) ────────────────────────────── */
-export const GalleryView: React.FC = () => {
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+const GalleryFormModal: React.FC<{
+  isOpen: boolean;
+  sites: SiteMeta[];
+  lockedSite: SiteLocation | null;
+  onClose: () => void;
+  onSave: (data: { site: SiteLocation; src: string; caption: string; description: string }) => void;
+}> = ({ isOpen, sites, lockedSite, onClose, onSave }) => {
+  const [site, setSite] = useState<SiteLocation>(lockedSite || sites[0]?.key || '');
+  const [caption, setCaption] = useState('');
+  const [description, setDescription] = useState('');
+  const [preview, setPreview] = useState<string | undefined>(undefined);
+  const [imageError, setImageError] = useState('');
+  const [formError, setFormError] = useState('');
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const close = () => setActiveIndex(null);
-  const showPrev = () =>
-    setActiveIndex((i) => (i === null ? null : (i - 1 + SETU_GALLERY.length) % SETU_GALLERY.length));
-  const showNext = () =>
-    setActiveIndex((i) => (i === null ? null : (i + 1) % SETU_GALLERY.length));
+  React.useEffect(() => {
+    if (isOpen) {
+      setSite(lockedSite || sites[0]?.key || '');
+      setCaption('');
+      setDescription('');
+      setPreview(undefined);
+      setImageError('');
+      setFormError('');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, lockedSite]);
+
+  if (!isOpen) return null;
+
+  const handleImageSelect = (file: File | undefined) => {
+    setImageError('');
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setImageError('File harus berupa gambar (JPG, PNG, WebP).');
+      return;
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      setImageError('Ukuran foto maksimal 4MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setPreview(reader.result as string);
+    reader.onerror = () => setImageError('Gagal membaca file gambar.');
+    reader.readAsDataURL(file);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!preview) {
+      setFormError('Pilih foto terlebih dahulu.');
+      return;
+    }
+    if (!caption.trim()) {
+      setFormError('Judul foto wajib diisi.');
+      return;
+    }
+    onSave({ site, src: preview, caption, description });
+  };
+
+  return (
+    <div className="admin-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="glass-panel admin-modal-panel" style={{ maxWidth: '480px' }}>
+        <button onClick={onClose} className="admin-modal-close-btn">
+          <X size={18} />
+        </button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', paddingRight: '2.5rem' }}>
+          <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(0,208,132,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <ImagePlus size={22} color="#00D084" />
+          </div>
+          <div>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--txt-primary)' }}>Tambah Foto Galeri</h3>
+            <div style={{ fontSize: '0.8rem', color: 'var(--txt-muted)' }}>Dokumentasikan peralatan atau instalasi lapangan</div>
+          </div>
+        </div>
+
+        {formError && (
+          <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#F87171', padding: '0.65rem 0.85rem', borderRadius: '8px', fontSize: '0.82rem', marginBottom: '1.1rem' }}>
+            {formError}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+          <div style={{ position: 'relative', borderRadius: '14px', overflow: 'hidden', minHeight: '140px', background: 'var(--bg-root)', border: '1px dashed var(--border-subtle)' }}>
+            {preview && <img src={preview} alt="" style={{ width: '100%', maxHeight: '220px', objectFit: 'cover', display: 'block' }} />}
+            <div style={{
+              position: preview ? 'absolute' : 'static', inset: 0,
+              background: preview ? 'rgba(5,8,16,0.35)' : 'transparent',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', padding: preview ? 0 : '1.5rem',
+            }}>
+              <input ref={fileInputRef} type="file" accept="image/*" onChange={(e) => handleImageSelect(e.target.files?.[0])} style={{ display: 'none' }} />
+              <button type="button" onClick={() => fileInputRef.current?.click()} className="btn-chip" style={{ fontSize: '0.78rem' }}>
+                <ImagePlus size={14} />
+                {preview ? 'Ganti Foto' : 'Pilih Foto'}
+              </button>
+            </div>
+          </div>
+          {imageError && <div style={{ fontSize: '0.72rem', color: '#F87171', marginTop: '-0.6rem' }}>{imageError}</div>}
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--txt-muted)', marginBottom: '0.4rem', fontWeight: 600 }}>Judul Foto</label>
+            <input value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="mis. Panel Kontrol Elektrikal Site" style={{ ...emptyInputStyle, width: '100%' }} autoFocus />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--txt-muted)', marginBottom: '0.4rem', fontWeight: 600 }}>Deskripsi (opsional)</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Catatan tambahan, kondisi, atau konteks foto ini..."
+              rows={3}
+              style={{ ...emptyInputStyle, width: '100%', resize: 'vertical', fontFamily: 'inherit' }}
+            />
+          </div>
+
+          {!lockedSite && (
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--txt-muted)', marginBottom: '0.4rem', fontWeight: 600 }}>Site</label>
+              <div style={{ position: 'relative' }}>
+                <Building2 size={15} color="var(--txt-muted)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
+                <select value={site} onChange={(e) => setSite(e.target.value)} style={{ ...emptyInputStyle, width: '100%', paddingLeft: '2.4rem', cursor: 'pointer' }}>
+                  {sites.map((s) => <option key={s.key} value={s.key}>Site {s.label}</option>)}
+                </select>
+              </div>
+            </div>
+          )}
+
+          <button type="submit" className="btn-primary" style={{ justifyContent: 'center', marginTop: '0.25rem' }}>
+            <ImagePlus size={16} />
+            Tambah ke Galeri
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export const GalleryView: React.FC<{ auth: AuthState }> = ({ auth }) => {
+  useGalleryRefresh();
+  const sites = useMemo(() => getSites(), []);
+  const isSuperAdmin = auth.role === 'Super Admin' || auth.assignedSite === 'global';
+  const lockedSite: SiteLocation | null = isSuperAdmin ? null : (auth.assignedSite as SiteLocation);
+
+  const [selectedSite, setSelectedSite] = useState<'all' | SiteLocation>(lockedSite || 'all');
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+
+  const allPhotos = getGallery();
+  const photos = selectedSite === 'all' ? allPhotos : allPhotos.filter((p) => p.site === selectedSite);
+  const activeIndex = activeId ? photos.findIndex((p) => p.id === activeId) : -1;
+  const activePhoto = activeIndex >= 0 ? photos[activeIndex] : null;
+
+  const close = () => setActiveId(null);
+  const showPrev = () => photos.length && setActiveId(photos[(activeIndex - 1 + photos.length) % photos.length].id);
+  const showNext = () => photos.length && setActiveId(photos[(activeIndex + 1) % photos.length].id);
+
+  const pageTitle = lockedSite
+    ? `Galeri Aset — Site ${SITE_LABEL[lockedSite]}`
+    : selectedSite === 'all'
+      ? 'Galeri Aset — Semua Site'
+      : `Galeri Aset — Site ${SITE_LABEL[selectedSite]}`;
+
+  const handleDelete = (item: GalleryItem) => {
+    if (confirm(`Hapus foto "${item.caption}" dari galeri?`)) {
+      deleteGalleryItem(item.id);
+      close();
+    }
+  };
 
   return (
     <div>
-      <PageHeader
-        icon={Images}
-        title="Galeri Aset — Site Setu"
-        sub={`${SETU_GALLERY.length} dokumentasi foto peralatan & instalasi lapangan Site Setu (Compressor Station & Fleet Room)`}
-      />
-      <div className="gallery-grid">
-        {SETU_GALLERY.map((photo, idx) => (
-          <button key={photo.src} className="gallery-card" onClick={() => setActiveIndex(idx)}>
-            <img src={photo.src} alt={photo.caption} loading="lazy" />
-            <div className="gallery-card-caption">{photo.caption}</div>
-          </button>
-        ))}
+      <div className="view-toolbar-row" style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        <PageHeader
+          icon={Images}
+          title={pageTitle}
+          sub={`${photos.length} dokumentasi foto peralatan & instalasi lapangan${lockedSite ? ` (${SITE_SUB[lockedSite]})` : ''}`}
+        />
+        <button type="button" className="btn-primary view-toolbar-btn" onClick={() => setIsFormOpen(true)} style={{ marginBottom: '1.5rem' }}>
+          <ImagePlus size={18} />
+          Tambah Foto
+        </button>
       </div>
 
-      {activeIndex !== null && (
+      {/* Site tabs — only Super Admin can browse every site's gallery */}
+      {isSuperAdmin && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1.5rem' }}>
+          <button
+            type="button"
+            onClick={() => setSelectedSite('all')}
+            className="btn-chip"
+            style={selectedSite === 'all' ? { background: 'rgba(0,208,132,0.14)', borderColor: 'rgba(0,208,132,0.4)', color: '#00D084' } : undefined}
+          >
+            <Images size={13} />
+            Semua Site
+            <span style={{ opacity: 0.75, fontWeight: 800 }}>{allPhotos.length}</span>
+          </button>
+          {sites.map((s) => {
+            const count = allPhotos.filter((p) => p.site === s.key).length;
+            const active = selectedSite === s.key;
+            return (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => setSelectedSite(s.key)}
+                className="btn-chip"
+                style={active ? { background: `${s.color}22`, borderColor: `${s.color}66`, color: s.color } : undefined}
+              >
+                <MapPin size={13} />
+                {s.label}
+                <span style={{ opacity: 0.75, fontWeight: 800 }}>{count}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {photos.length === 0 ? (
+        <div className="glass-panel" style={{ borderRadius: '16px', padding: '3rem 1.5rem', textAlign: 'center', color: 'var(--txt-muted)' }}>
+          Belum ada foto di galeri ini.
+          <div style={{ marginTop: '0.75rem' }}>
+            <button type="button" className="btn-chip" onClick={() => setIsFormOpen(true)}>
+              <ImagePlus size={14} />
+              Tambah foto pertama
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="gallery-grid">
+          {photos.map((photo) => (
+            <button key={photo.id} className="gallery-card" onClick={() => setActiveId(photo.id)}>
+              <img src={photo.src} alt={photo.caption} loading="lazy" />
+              <div className="gallery-card-caption">
+                {photo.caption}
+                {!lockedSite && selectedSite === 'all' && (
+                  <span style={{ display: 'block', fontSize: '0.68rem', opacity: 0.75, marginTop: '0.15rem' }}>
+                    Site {SITE_LABEL[photo.site]}
+                  </span>
+                )}
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {activePhoto && (
         <div
           className="gallery-lightbox"
           onClick={(e) => { if (e.target === e.currentTarget) close(); }}
@@ -1548,19 +1947,46 @@ export const GalleryView: React.FC = () => {
           <button className="gallery-lightbox-nav prev" onClick={showPrev} aria-label="Foto sebelumnya">
             <ChevronLeft size={22} />
           </button>
-          <img
-            src={SETU_GALLERY[activeIndex].src}
-            alt={SETU_GALLERY[activeIndex].caption}
-            className="gallery-lightbox-img"
-          />
+          <img src={activePhoto.src} alt={activePhoto.caption} className="gallery-lightbox-img" />
           <button className="gallery-lightbox-nav next" onClick={showNext} aria-label="Foto berikutnya">
             <ChevronRight size={22} />
           </button>
           <div className="gallery-lightbox-caption">
-            {SETU_GALLERY[activeIndex].caption} — ({activeIndex + 1}/{SETU_GALLERY.length})
+            <div style={{ fontWeight: 700 }}>
+              {activePhoto.caption} — ({activeIndex + 1}/{photos.length})
+            </div>
+            <div style={{ fontSize: '0.78rem', opacity: 0.8, marginTop: '0.2rem' }}>
+              Site {SITE_LABEL[activePhoto.site]}
+              {activePhoto.uploadedBy && ` · Diunggah oleh ${activePhoto.uploadedBy}`}
+            </div>
+            {activePhoto.description && (
+              <div style={{ fontSize: '0.82rem', opacity: 0.9, marginTop: '0.5rem', maxWidth: '480px' }}>{activePhoto.description}</div>
+            )}
+            {!isDefaultGalleryItem(activePhoto.id) && (
+              <button
+                type="button"
+                onClick={() => handleDelete(activePhoto)}
+                className="btn-chip danger"
+                style={{ marginTop: '0.75rem', fontSize: '0.74rem' }}
+              >
+                <Trash2 size={12} />
+                Hapus Foto
+              </button>
+            )}
           </div>
         </div>
       )}
+
+      <GalleryFormModal
+        isOpen={isFormOpen}
+        sites={sites}
+        lockedSite={lockedSite}
+        onClose={() => setIsFormOpen(false)}
+        onSave={(data) => {
+          addGalleryItem({ ...data, uploadedBy: auth.username });
+          setIsFormOpen(false);
+        }}
+      />
     </div>
   );
 };
@@ -1569,6 +1995,12 @@ export const GalleryView: React.FC = () => {
 export const ProductLinesView: React.FC<{ spareParts: SparePart[] }> = ({ spareParts }) => {
   const lines = ['CNG', 'LNG', 'Biomass'] as const;
   const colors: Record<string, string> = { CNG: '#38BDF8', LNG: '#F472B6', Biomass: '#A3E635' };
+  const icons: Record<string, React.ElementType> = { CNG: Flame, LNG: Droplet, Biomass: Leaf };
+  const taglines: Record<string, string> = {
+    CNG: 'Compressed Natural Gas — distribusi & pengisian',
+    LNG: 'Liquefied Natural Gas — penyimpanan kriogenik',
+    Biomass: 'Energi terbarukan dari limbah organik',
+  };
   return (
     <div>
       <PageHeader icon={Layers} title="Lini Produk Energi" sub="Spare part dikelompokkan berdasarkan lini produk clean energy Reethau" />
@@ -1577,13 +2009,35 @@ export const ProductLinesView: React.FC<{ spareParts: SparePart[] }> = ({ spareP
           const items = spareParts.filter((p) => p.productEnergy === line);
           const stock = items.reduce((acc, p) => acc + p.stock, 0);
           const value = items.reduce((acc, p) => acc + p.stock * p.priceEstimate, 0);
+          const accent = colors[line];
+          const Icon = icons[line];
           return (
-            <div key={line} className="glass-panel" style={{ borderRadius: '16px', padding: '1.25rem', borderTop: `3px solid ${colors[line]}` }}>
-              <div style={{ fontSize: '0.85rem', color: 'var(--txt-tertiary)', fontWeight: 700 }}>{line} Line</div>
-              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--txt-primary)', marginTop: '0.5rem' }}>
+            <div
+              key={line}
+              className="glass-panel glass-panel-hover"
+              style={{
+                borderRadius: '16px',
+                padding: '1.25rem',
+                borderTop: `3px solid ${accent}`,
+                background: `linear-gradient(160deg, ${accent}0D 0%, transparent 55%), var(--bg-card)`,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.9rem' }}>
+                <div style={{
+                  width: '46px', height: '46px', borderRadius: '12px', flexShrink: 0,
+                  background: `${accent}22`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Icon size={22} color={accent} strokeWidth={1.9} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.95rem', color: 'var(--txt-primary)', fontWeight: 800 }}>{line} Line</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--txt-muted)', marginTop: '0.1rem' }}>{taglines[line]}</div>
+                </div>
+              </div>
+              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--txt-primary)' }}>
                 {stock} <span style={{ fontSize: '0.8rem', color: 'var(--txt-muted)', fontWeight: 500 }}>unit / {items.length} jenis</span>
               </div>
-              <div style={{ fontSize: '0.8rem', color: colors[line], marginTop: '0.4rem', fontWeight: 700 }}>{formatIDR(value)}</div>
+              <div style={{ fontSize: '0.8rem', color: accent, marginTop: '0.4rem', fontWeight: 700 }}>{formatIDR(value)}</div>
             </div>
           );
         })}
@@ -1593,39 +2047,307 @@ export const ProductLinesView: React.FC<{ spareParts: SparePart[] }> = ({ spareP
 };
 
 /* ────────────────────────────── Team (from log activity) ────────────────────────────── */
-export const TeamView: React.FC<{ logs: ActivityLog[] }> = ({ logs }) => {
-  const roster = Object.entries(
-    logs.reduce<Record<string, number>>((acc, l) => {
-      acc[l.performedBy] = (acc[l.performedBy] || 0) + 1;
-      return acc;
-    }, {})
-  ).sort((a, b) => b[1] - a[1]);
+// A small fixed palette so each teammate gets a consistent, distinct avatar
+// color across renders (hashed from their name) instead of everyone sharing
+// the same green circle.
+const AVATAR_PALETTE = ['#00D084', '#60A5FA', '#FBBF24', '#F472B6', '#A78BFA', '#38BDF8', '#34D399', '#F87171'];
 
-  const initials = (name: string) =>
-    name
-      .split(' ')
-      .slice(0, 2)
-      .map((w) => w[0])
-      .join('')
-      .toUpperCase();
+function avatarColorFor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+  return AVATAR_PALETTE[hash % AVATAR_PALETTE.length];
+}
+
+/** Splits a performer string like "Hendra Gunawan (Site Manager Bekasi)"
+ * into a clean display name and role/title, since ActivityLog only stores
+ * one free-text field for "who did this". */
+function splitNameRole(raw: string): { name: string; role: string | null } {
+  const match = raw.match(/^(.*?)\s*\(([^)]+)\)\s*$/);
+  if (match) return { name: match[1].trim(), role: match[2].trim() };
+  return { name: raw.trim(), role: null };
+}
+
+export const TeamView: React.FC<{ logs: ActivityLog[] }> = ({ logs }) => {
+  const roster = useMemo(() => {
+    const byPerson = new Map<string, ActivityLog[]>();
+    logs.forEach((l) => {
+      const list = byPerson.get(l.performedBy) ?? [];
+      list.push(l);
+      byPerson.set(l.performedBy, list);
+    });
+    return Array.from(byPerson.entries())
+      .map(([raw, personLogs]) => {
+        const { name, role } = splitNameRole(raw);
+        const sorted = [...personLogs].sort(
+          (a, b) => (parseLogDate(b.timestamp)?.getTime() ?? 0) - (parseLogDate(a.timestamp)?.getTime() ?? 0)
+        );
+        const lastLog = sorted[0];
+        // Most common action type for this person, so their card can show
+        // "mostly does X" rather than a generic count.
+        const actionCounts = new Map<ActivityLog['action'], number>();
+        personLogs.forEach((l) => actionCounts.set(l.action, (actionCounts.get(l.action) ?? 0) + 1));
+        const topAction = Array.from(actionCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'STOCK_UPDATE';
+        return { raw, name, role, count: personLogs.length, lastLog, topAction };
+      })
+      .sort((a, b) => b.count - a.count);
+  }, [logs]);
 
   return (
     <div>
       <PageHeader icon={Users} title="Tim Lapangan" sub="Personel yang tercatat aktif melakukan perubahan data inventaris" />
+
+      {roster.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+          <div className="glass-panel" style={{ borderRadius: '16px', padding: '1.1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.65rem' }}>
+              <div style={{ width: '34px', height: '34px', borderRadius: '9px', background: 'rgba(0,208,132,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Users size={16} color="#00D084" />
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--txt-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Anggota Tercatat</div>
+            </div>
+            <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--txt-primary)' }}>{roster.length}</div>
+          </div>
+          <div className="glass-panel" style={{ borderRadius: '16px', padding: '1.1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.65rem' }}>
+              <div style={{ width: '34px', height: '34px', borderRadius: '9px', background: 'rgba(251,191,36,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Crown size={16} color="#FBBF24" />
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--txt-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Paling Aktif</div>
+            </div>
+            <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--txt-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {splitNameRole(roster[0].raw).name}
+            </div>
+          </div>
+          <div className="glass-panel" style={{ borderRadius: '16px', padding: '1.1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.65rem' }}>
+              <div style={{ width: '34px', height: '34px', borderRadius: '9px', background: 'rgba(96,165,250,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Activity size={16} color="#60A5FA" />
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--txt-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Total Aktivitas</div>
+            </div>
+            <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--txt-primary)' }}>{logs.length}</div>
+          </div>
+        </div>
+      )}
+
       <div className="roster-grid">
         {roster.length === 0 && (
           <div style={{ color: 'var(--txt-muted)' }}>Belum ada aktivitas tercatat.</div>
         )}
-        {roster.map(([name, count]) => (
-          <div key={name} className="glass-panel roster-card">
-            <div className="roster-avatar">{initials(name)}</div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ color: 'var(--txt-primary)', fontWeight: 700, fontSize: '0.88rem' }}>{name}</div>
-              <div style={{ color: 'var(--txt-muted)', fontSize: '0.75rem', marginTop: '0.15rem' }}>{count} aktivitas tercatat</div>
+        {roster.map(({ name, role, count, lastLog, topAction }, index) => {
+          const color = avatarColorFor(name);
+          const isTop = index === 0 && count > 0;
+          const ActionIcon = ACTION_META[topAction].icon;
+          return (
+            <div
+              key={name + role}
+              className="glass-panel roster-card"
+              style={isTop ? { borderColor: 'rgba(251, 191, 36, 0.4)', position: 'relative', overflow: 'hidden' } : undefined}
+            >
+              {isTop && (
+                <div style={{
+                  position: 'absolute', top: 0, right: 0, background: '#FBBF24', color: 'var(--txt-inverse)',
+                  fontSize: '0.62rem', fontWeight: 800, padding: '0.2rem 0.6rem 0.2rem 0.8rem',
+                  borderBottomLeftRadius: '10px', display: 'flex', alignItems: 'center', gap: '0.25rem',
+                }}>
+                  <Crown size={11} />
+                  TOP
+                </div>
+              )}
+              <div
+                className="roster-avatar"
+                style={{ background: `${color}26`, color, fontSize: '1.05rem' }}
+              >
+                {initialsOf(name)}
+              </div>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ color: 'var(--txt-primary)', fontWeight: 700, fontSize: '0.92rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {name}
+                </div>
+                {role ? (
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.25rem',
+                    fontSize: '0.7rem', fontWeight: 700, color, background: `${color}1F`,
+                    padding: '0.15rem 0.5rem', borderRadius: '999px',
+                  }}>
+                    <Sparkles size={10} />
+                    {role}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: '0.75rem', color: 'var(--txt-muted)', marginTop: '0.2rem' }}>Anggota Tim</div>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem', marginTop: '0.55rem', fontSize: '0.74rem', color: 'var(--txt-muted)' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                    <ActionIcon size={12} />
+                    {count} aktivitas
+                  </span>
+                  {lastLog && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                      <Clock size={12} />
+                      {timeAgo(lastLog.timestamp)}
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
+    </div>
+  );
+};
+
+/* ────────────────────────────── User Management ────────────────────────────── */
+const ROLE_BADGE: Record<UserRole, { color: string; bg: string }> = {
+  'Super Admin': { color: '#FBBF24', bg: 'rgba(251,191,36,0.14)' },
+  'Site Manager': { color: '#60A5FA', bg: 'rgba(96,165,250,0.14)' },
+  'Maintenance Engineer': { color: '#A78BFA', bg: 'rgba(167,139,250,0.14)' },
+};
+
+export const UserManagementView: React.FC<{
+  users: AppUser[];
+  currentUserId?: string;
+  onAddUser: (data: Partial<AppUser>) => void;
+  onUpdateUser: (id: string, data: Partial<AppUser>) => void;
+  onDeleteUser: (id: string) => void;
+}> = ({ users, currentUserId, onAddUser, onUpdateUser, onDeleteUser }) => {
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<AppUser | null>(null);
+
+  const superAdminCount = users.filter((u) => u.role === 'Super Admin').length;
+
+  const openAdd = () => {
+    setEditingUser(null);
+    setIsFormOpen(true);
+  };
+
+  const openEdit = (user: AppUser) => {
+    setEditingUser(user);
+    setIsFormOpen(true);
+  };
+
+  const handleDelete = (user: AppUser) => {
+    if (user.id === currentUserId) {
+      alert('Anda tidak bisa menghapus akun Anda sendiri.');
+      return;
+    }
+    if (user.role === 'Super Admin' && superAdminCount <= 1) {
+      alert('Tidak bisa menghapus Super Admin terakhir. Tambahkan Super Admin lain terlebih dahulu.');
+      return;
+    }
+    if (confirm(`Hapus akun ${user.name}? Tindakan ini tidak bisa dibatalkan.`)) {
+      onDeleteUser(user.id);
+    }
+  };
+
+  return (
+    <div>
+      <div className="view-toolbar-row" style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        <PageHeader icon={UserCog} title="Kelola Pengguna" sub="Atur siapa saja yang bisa mengakses Admin Portal dan level aksesnya" />
+        <button type="button" className="btn-primary view-toolbar-btn" onClick={openAdd} style={{ marginBottom: '1.5rem' }}>
+          <Plus size={18} />
+          Tambah Pengguna
+        </button>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+        <div className="glass-panel" style={{ borderRadius: '16px', padding: '1.1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.65rem' }}>
+            <div style={{ width: '34px', height: '34px', borderRadius: '9px', background: 'rgba(0,208,132,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Users size={16} color="#00D084" />
+            </div>
+            <div style={{ fontSize: '0.72rem', color: 'var(--txt-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Total Akun</div>
+          </div>
+          <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--txt-primary)' }}>{users.length}</div>
+        </div>
+        <div className="glass-panel" style={{ borderRadius: '16px', padding: '1.1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.65rem' }}>
+            <div style={{ width: '34px', height: '34px', borderRadius: '9px', background: 'rgba(251,191,36,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <ShieldCheck size={16} color="#FBBF24" />
+            </div>
+            <div style={{ fontSize: '0.72rem', color: 'var(--txt-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Super Admin</div>
+          </div>
+          <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--txt-primary)' }}>{superAdminCount}</div>
+        </div>
+      </div>
+
+      <div className="roster-grid">
+        {users.map((user) => {
+          const badge = ROLE_BADGE[user.role];
+          const isYou = user.id === currentUserId;
+          const color = avatarColorFor(user.name);
+          return (
+            <div key={user.id} className="glass-panel roster-card" style={{ alignItems: 'flex-start', position: 'relative' }}>
+              {user.avatarUrl ? (
+                <img src={user.avatarUrl} alt={user.name} style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid var(--bg-surface)', boxShadow: '0 0 0 1px var(--border-subtle)' }} />
+              ) : (
+                <div className="roster-avatar" style={{ background: `${color}26`, color, fontSize: '1.05rem' }}>
+                  {initialsOf(user.name)}
+                </div>
+              )}
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <div style={{ color: 'var(--txt-primary)', fontWeight: 700, fontSize: '0.92rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {user.name}
+                  </div>
+                  {isYou && (
+                    <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#00D084', background: 'rgba(0,208,132,0.14)', padding: '0.1rem 0.4rem', borderRadius: '999px', flexShrink: 0 }}>
+                      ANDA
+                    </span>
+                  )}
+                </div>
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.3rem',
+                  fontSize: '0.7rem', fontWeight: 700, color: badge.color, background: badge.bg,
+                  padding: '0.15rem 0.5rem', borderRadius: '999px',
+                }}>
+                  <ShieldCheck size={10} />
+                  {user.role}
+                </div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--txt-secondary)', marginTop: '0.45rem', fontWeight: 600 }}>{user.position}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.3rem', fontSize: '0.72rem', color: 'var(--txt-muted)' }}>
+                  <Mail size={11} />
+                  {user.email}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.2rem', fontSize: '0.72rem', color: 'var(--txt-muted)' }}>
+                  <MapPin size={11} />
+                  {user.assignedSite === 'global' ? 'Semua Site' : `Site ${user.assignedSite.charAt(0).toUpperCase()}${user.assignedSite.slice(1)}`}
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+                  <button type="button" className="btn-chip" onClick={() => openEdit(user)} style={{ fontSize: '0.74rem', padding: '0.4rem 0.7rem' }}>
+                    <Pencil size={12} />
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-chip danger"
+                    onClick={() => handleDelete(user)}
+                    style={{ fontSize: '0.74rem', padding: '0.4rem 0.7rem' }}
+                  >
+                    <Trash2 size={12} />
+                    Hapus
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <UserFormModal
+        isOpen={isFormOpen}
+        mode="admin"
+        userToEdit={editingUser}
+        onClose={() => setIsFormOpen(false)}
+        onSave={(data) => {
+          if (editingUser) {
+            onUpdateUser(editingUser.id, data);
+          } else {
+            onAddUser(data);
+          }
+          setIsFormOpen(false);
+        }}
+      />
     </div>
   );
 };

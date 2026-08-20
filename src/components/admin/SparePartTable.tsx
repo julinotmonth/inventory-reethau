@@ -36,7 +36,7 @@ export const SparePartTable: React.FC<SparePartTableProps> = ({ spareParts, onEd
     return (
       <div style={{ textAlign: 'center', padding: '4rem 2rem', color: '#64748B' }}>
         <AlertTriangle size={40} color="#F59E0B" style={{ marginBottom: '1rem' }} />
-        <h4 style={{ color: '#FFFFFF', fontSize: '1.1rem', marginBottom: '0.5rem' }}>Tidak Ada Spare Part Ditemukan</h4>
+        <h4 style={{ color: 'var(--txt-primary)', fontSize: '1.1rem', marginBottom: '0.5rem' }}>Tidak Ada Spare Part Ditemukan</h4>
         <p style={{ fontSize: '0.85rem' }}>Coba ubah kata kunci pencarian, filter kategori, atau lokasi site.</p>
       </div>
     );
@@ -101,7 +101,7 @@ export const SparePartTable: React.FC<SparePartTableProps> = ({ spareParts, onEd
             </div>
 
             <div className="spare-cell" data-label="Stok / Min">
-              <div className="spare-stock-value" style={{ color: item.stock <= item.minStock ? '#F87171' : '#FFFFFF' }}>
+              <div className="spare-stock-value" style={{ color: item.stock <= item.minStock ? '#F87171' : 'var(--txt-primary)' }}>
                 {item.stock} <span className="spare-stock-unit">{item.unit}</span>
               </div>
               <div className="spare-stock-min">Min: {item.minStock}</div>

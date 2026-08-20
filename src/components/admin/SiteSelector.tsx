@@ -1,56 +1,34 @@
 import React from 'react';
 import { MapPin, Globe } from 'lucide-react';
 import type { SiteFilter } from '../../types';
+import { getSites, useSitesRefresh } from '../../data/siteStore';
 
 interface SiteSelectorProps {
   currentSite: SiteFilter;
   onSiteChange: (site: SiteFilter) => void;
-  siteCounts: {
-    global: number;
-    bekasi: number;
-    indramayu: number;
-    blora: number;
-    setu: number;
-  };
+  siteCounts: Record<string, number>;
 }
 
 export const SiteSelector: React.FC<SiteSelectorProps> = ({ currentSite, onSiteChange, siteCounts }) => {
+  // Re-renders this component the instant a site is added/edited/deleted
+  // anywhere in the app, so the list below is never stale.
+  useSitesRefresh();
+
   const sites: { id: SiteFilter; label: string; sub: string; count: number; image: string }[] = [
     {
       id: 'global',
       label: 'Semua Site (Global)',
       sub: 'Ikhtisar Seluruh Aset',
-      count: siteCounts.global,
+      count: siteCounts.global ?? 0,
       image: '/assets/images/gallery-6.webp',
     },
-    {
-      id: 'bekasi',
-      label: 'Site Bekasi',
-      sub: 'Mother Station & Workshop',
-      count: siteCounts.bekasi,
-      image: '/assets/images/cng-cylinder.webp',
-    },
-    {
-      id: 'indramayu',
-      label: 'Site Indramayu',
-      sub: 'Daughter Station & Depot',
-      count: siteCounts.indramayu,
-      image: '/assets/images/distribution-truck.webp',
-    },
-    {
-      id: 'blora',
-      label: 'Site Blora',
-      sub: 'Wellhead & Processing Plant',
-      count: siteCounts.blora,
-      image: '/assets/images/cng-pipe.webp',
-    },
-    {
-      id: 'setu',
-      label: 'Site Setu',
-      sub: 'Compressor Station & Fleet Room',
-      count: siteCounts.setu,
-      image: '/assets/images/setu/setu-02.webp',
-    },
+    ...getSites().map((s) => ({
+      id: s.key,
+      label: `Site ${s.label}`,
+      sub: s.subtitle,
+      count: siteCounts[s.key] ?? 0,
+      image: s.imageUrl,
+    })),
   ];
 
   return (

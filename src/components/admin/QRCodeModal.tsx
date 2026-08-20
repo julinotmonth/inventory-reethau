@@ -139,7 +139,7 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({
             <QrCodeIcon size={24} />
           </div>
           <div style={{ minWidth: 0 }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#FFFFFF' }}>{title}</h3>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--txt-primary)' }}>{title}</h3>
             {subtitle && (
               <div style={{ fontSize: '0.78rem', color: '#00D084', fontFamily: 'monospace', fontWeight: 700 }}>{subtitle}</div>
             )}

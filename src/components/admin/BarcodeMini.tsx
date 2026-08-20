@@ -10,7 +10,9 @@ interface BarcodeMiniProps {
 
 /**
  * Renders a compact Code128 barcode inline (e.g. inside a table row).
- * Always drawn on a white background so it stays scannable on the dark UI.
+ * Always drawn on a literal white background with black bars — regardless
+ * of the app's light/dark theme — because a barcode must stay high-contrast
+ * black-on-white to remain scannable by real scanners/cameras.
  */
 export const BarcodeMini: React.FC<BarcodeMiniProps> = ({ value, height = 30, width = 1.4, fontSize = 10 }) => {
   const svgRef = useRef<SVGSVGElement | null>(null);

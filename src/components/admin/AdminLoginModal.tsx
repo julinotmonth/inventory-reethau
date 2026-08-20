@@ -1,12 +1,23 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Lock, Mail, MapPin, ArrowRight } from 'lucide-react';
-import type { AuthState, SiteFilter } from '../../types';
+import type { AuthState, SiteFilter, AppUser } from '../../types';
+import { INITIAL_USERS } from '../../data/mockData';
+import { getSites } from '../../data/siteStore';
 
 interface AdminLoginModalProps {
   isOpen: boolean;
   onClose: () => void;
   onLoginSuccess: (auth: AuthState) => void;
+}
+
+function loadUsers(): AppUser[] {
+  try {
+    const saved = localStorage.getItem('reethau_users');
+    return saved ? JSON.parse(saved) : INITIAL_USERS;
+  } catch {
+    return INITIAL_USERS;
+  }
 }
 
 export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ isOpen, onClose, onLoginSuccess }) => {
@@ -24,12 +35,32 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ isOpen, onClos
       return;
     }
 
-    onLoginSuccess({
-      isAuthenticated: true,
-      username: email.split('@')[0].toUpperCase(),
-      role: 'Super Admin',
-      assignedSite: selectedSite,
-    });
+    // If the email matches a registered account, sign in as that person —
+    // profile picture, position, role and assigned site all carry over.
+    const users = loadUsers();
+    const match = users.find((u) => u.email.toLowerCase() === email.trim().toLowerCase());
+
+    if (match) {
+      onLoginSuccess({
+        isAuthenticated: true,
+        userId: match.id,
+        username: match.name,
+        role: match.role,
+        assignedSite: match.assignedSite,
+        avatarUrl: match.avatarUrl,
+        position: match.position,
+      });
+    } else {
+      // Unknown email — fall back to a fresh ad-hoc Super Admin session so
+      // the demo stays frictionless for any credentials.
+      onLoginSuccess({
+        isAuthenticated: true,
+        username: email.split('@')[0].toUpperCase(),
+        role: 'Super Admin',
+        assignedSite: selectedSite,
+        position: 'Super Admin',
+      });
+    }
 
     onClose();
   };
@@ -130,6 +161,9 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ isOpen, onClos
                 placeholder="nama@reethau.com"
               />
             </div>
+            <p style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '0.4rem' }}>
+              Coba: admin@reethau.com, hendra.gunawan@reethau.com, atau budi.santoso@reethau.com
+            </p>
           </div>
 
           <div>
@@ -167,7 +201,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ isOpen, onClos
                 onChange={(e) => setSelectedSite(e.target.value as SiteFilter)}
                 style={{
                   width: '100%',
-                  background: '#0A0F1D',
+                  background: 'var(--bg-root)',
                   border: '1px solid rgba(255, 255, 255, 0.1)',
                   borderRadius: '10px',
                   padding: '0.75rem 1rem 0.75rem 2.75rem',
@@ -177,9 +211,9 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ isOpen, onClos
                 }}
               >
                 <option value="global">🌐 Semua Site (Global Overview)</option>
-                <option value="bekasi">📍 Site Bekasi (CNG Mother Station)</option>
-                <option value="indramayu">📍 Site Indramayu (CNG Daughter Station)</option>
-                <option value="blora">📍 Site Blora (Wellhead Facility)</option>
+                {getSites().map((s) => (
+                  <option key={s.key} value={s.key}>📍 Site {s.label} ({s.subtitle})</option>
+                ))}
               </select>
             </div>
           </div>
